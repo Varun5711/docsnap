@@ -36,13 +36,30 @@ Open webpage
 ## Local First Run
 
 ```bash
-go run ./services/api/cmd/api
-npm install
-npm run dev:web
-npm run dev:extension
+docker compose -f infra/docker-compose.yml up -d postgres
+cd services/api && go run ./cmd/api
+bun install
+bun run dev:web
+bun run dev:extension
 ```
 
-The API starts with an in-memory store and simulated Flare/FCC anchoring so capture, search, and verification can be demoed before Docker, Foundry, and Coston2 credentials are ready.
+The API uses PostgreSQL for evidence and claim search. Flare/FCC anchoring is currently represented by a simulator behind the `flare.Client` interface until the Coston2 contract and FCC indexer credentials are wired.
+
+## Contracts
+
+```bash
+cd contracts
+forge test
+DOCSNAP_TEE_REPORTER=0x0000000000000000000000000000000000000001 forge script script/DeployDocSnapAnchor.s.sol --rpc-url "$DOCSNAP_FLARE_RPC_URL" --broadcast
+```
+
+## FCC Extension
+
+```bash
+cd fcc/docsnap/go
+go test ./...
+go run ./cmd/extension
+```
 
 ## Required Before Coston2 Deployment
 
@@ -52,4 +69,3 @@ The API starts with an in-memory store and simulated Flare/FCC anchoring so capt
 - Add Flare RPC URL and private key
 - Get Coston2 FCC indexer credentials from Flare
 - Configure an ngrok or cloudflared public endpoint for the FCC proxy
-
