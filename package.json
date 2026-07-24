@@ -9,6 +9,7 @@
   "scripts": {
     "dev:web": "bun run --cwd apps/web dev",
     "dev:extension": "bun run --cwd apps/extension dev",
+    "dev:api": "bash -c 'set -a && source .env && set +a && cd services/api && air'",
     "build:web": "bun run --cwd apps/web build",
     "build:extension": "bun run --cwd apps/extension build",
     "lint:web": "bun run --cwd apps/web lint",
