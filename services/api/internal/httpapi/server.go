@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -70,6 +71,7 @@ func (s Server) capture(w http.ResponseWriter, r *http.Request) {
 
 	claims, err := s.extractor.Extract(req)
 	if err != nil {
+		log.Printf("capture: claim extraction failed: %v", err)
 		writeError(w, http.StatusBadGateway, "claim extraction failed")
 		return
 	}
@@ -95,6 +97,7 @@ func (s Server) capture(w http.ResponseWriter, r *http.Request) {
 	if strings.TrimSpace(req.ScreenshotDataURL) != "" {
 		key, err := s.storage.PutDataURL(r.Context(), id, req.ScreenshotDataURL)
 		if err != nil {
+			log.Printf("capture: screenshot storage failed: %v", err)
 			writeError(w, http.StatusBadRequest, "screenshot storage failed")
 			return
 		}
@@ -111,6 +114,7 @@ func (s Server) capture(w http.ResponseWriter, r *http.Request) {
 		SubmittedAt:        req.CapturedAt.UTC().Format(time.RFC3339Nano),
 	})
 	if err != nil {
+		log.Printf("capture: tee certification failed: %v", err)
 		writeError(w, http.StatusBadGateway, "tee certification failed")
 		return
 	}
@@ -126,6 +130,7 @@ func (s Server) capture(w http.ResponseWriter, r *http.Request) {
 		Submitter:          req.UserID,
 	})
 	if err != nil {
+		log.Printf("capture: flare anchoring failed: %v", err)
 		writeError(w, http.StatusBadGateway, "flare anchoring failed")
 		return
 	}
@@ -158,6 +163,7 @@ func (s Server) capture(w http.ResponseWriter, r *http.Request) {
 	saveItem := item
 	saveItem.ScreenshotDataURL = ""
 	if err := s.store.Save(r.Context(), saveItem); err != nil {
+		log.Printf("capture: save failed: %v", err)
 		writeError(w, http.StatusInternalServerError, "save failed")
 		return
 	}
