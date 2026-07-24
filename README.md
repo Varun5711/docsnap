@@ -52,6 +52,7 @@ Create `.env` from `.env.example`.
 - `GROQ_API_KEY`: create an API key in the Groq console at `https://console.groq.com/keys`.
 - `GROQ_MODEL`: defaults to `qwen/qwen3.6-27b`, Groq's current multimodal model used for screenshot + text claim extraction.
 - `DOCSNAP_FLARE_PRIVATE_KEY`: private key for a funded Coston2 wallet.
+- `DOCSNAP_TEE_REPORTER_PRIVATE_KEY`: optional private key for the contract's TEE reporter account. For the hackathon demo, set this to the key used as `DOCSNAP_TEE_REPORTER` during contract deployment so the API can record the certificate in the same flow.
 - `DOCSNAP_FLARE_RPC_URL`: defaults to `https://coston2-api.flare.network/ext/C/rpc`.
 - `DOCSNAP_CONTRACT_ADDRESS`: deployed `DocSnapAnchor` contract address on Coston2.
 - `DATABASE_URL`: Postgres connection string.

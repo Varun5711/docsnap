@@ -8,6 +8,8 @@ type Config struct {
 	FlareMode    string
 	FlareRPCURL  string
 	ContractAddr string
+	FlareKey     string
+	TEEKey       string
 	GroqAPIKey   string
 	GroqBaseURL  string
 	GroqModel    string
@@ -23,6 +25,8 @@ func Load() Config {
 		FlareMode:    env("DOCSNAP_FLARE_MODE", "simulated"),
 		FlareRPCURL:  env("DOCSNAP_FLARE_RPC_URL", "https://coston2-api.flare.network/ext/C/rpc"),
 		ContractAddr: env("DOCSNAP_CONTRACT_ADDRESS", ""),
+		FlareKey:     env("DOCSNAP_FLARE_PRIVATE_KEY", ""),
+		TEEKey:       env("DOCSNAP_TEE_REPORTER_PRIVATE_KEY", ""),
 		GroqAPIKey:   env("GROQ_API_KEY", ""),
 		GroqBaseURL:  env("GROQ_BASE_URL", "https://api.groq.com/openai/v1"),
 		GroqModel:    env("GROQ_MODEL", "qwen/qwen3.6-27b"),

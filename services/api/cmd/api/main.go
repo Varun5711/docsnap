@@ -30,7 +30,16 @@ func main() {
 	}
 
 	hasher := evidence.NewHasher()
-	anchor := flare.NewSimulatedClient()
+	anchor, err := flare.NewClient(ctx, flare.Config{
+		Mode:                  cfg.FlareMode,
+		RPCURL:                cfg.FlareRPCURL,
+		ContractAddress:       cfg.ContractAddr,
+		PrivateKey:            cfg.FlareKey,
+		TEEReporterPrivateKey: cfg.TEEKey,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
 	objectStore := storage.NewLocal(cfg.StoragePath)
 	server := httpapi.NewServer(cfg, repo, extractor, hasher, anchor, objectStore)
 
