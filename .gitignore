@@ -14,3 +14,4 @@ cache
 *.log
 *.tsbuildinfo
 infra/data
+contracts/lib
