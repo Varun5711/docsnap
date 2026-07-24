@@ -8,7 +8,9 @@ type Config struct {
 	FlareMode    string
 	FlareRPCURL  string
 	ContractAddr string
-	OpenAIAPIKey string
+	GroqAPIKey   string
+	GroqBaseURL  string
+	GroqModel    string
 	StorageMode  string
 	StoragePath  string
 	DatabaseURL  string
@@ -21,7 +23,9 @@ func Load() Config {
 		FlareMode:    env("DOCSNAP_FLARE_MODE", "simulated"),
 		FlareRPCURL:  env("DOCSNAP_FLARE_RPC_URL", "https://coston2-api.flare.network/ext/C/rpc"),
 		ContractAddr: env("DOCSNAP_CONTRACT_ADDRESS", ""),
-		OpenAIAPIKey: env("DOCSNAP_OPENAI_API_KEY", ""),
+		GroqAPIKey:   env("GROQ_API_KEY", ""),
+		GroqBaseURL:  env("GROQ_BASE_URL", "https://api.groq.com/openai/v1"),
+		GroqModel:    env("GROQ_MODEL", "qwen/qwen3.6-27b"),
 		StorageMode:  env("DOCSNAP_STORAGE_MODE", "local"),
 		StoragePath:  env("DOCSNAP_STORAGE_PATH", "./tmp/evidence"),
 		DatabaseURL:  env("DATABASE_URL", "postgres://docsnap:docsnap@localhost:5432/docsnap?sslmode=disable"),

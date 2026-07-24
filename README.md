@@ -29,7 +29,7 @@ Open webpage
 - Backend: Go HTTP API
 - Database target: PostgreSQL with full-text search and trigram indexes
 - Storage target: S3-compatible object storage
-- AI target: multimodal claim extraction API
+- AI: Groq vision/text claim extraction
 - Blockchain: Solidity contract on Flare Coston2
 - Confidential compute: Go FCC extension
 
@@ -44,6 +44,17 @@ bun run dev:extension
 ```
 
 The API uses PostgreSQL for evidence and claim search. Flare/FCC anchoring is currently represented by a simulator behind the `flare.Client` interface until the Coston2 contract and FCC indexer credentials are wired.
+
+## Required Credentials
+
+Create `.env` from `.env.example`.
+
+- `GROQ_API_KEY`: create an API key in the Groq console at `https://console.groq.com/keys`.
+- `GROQ_MODEL`: defaults to `qwen/qwen3.6-27b`, Groq's current multimodal model used for screenshot + text claim extraction.
+- `DOCSNAP_FLARE_PRIVATE_KEY`: private key for a funded Coston2 wallet.
+- `DOCSNAP_FLARE_RPC_URL`: defaults to `https://coston2-api.flare.network/ext/C/rpc`.
+- `DOCSNAP_CONTRACT_ADDRESS`: deployed `DocSnapAnchor` contract address on Coston2.
+- `DATABASE_URL`: Postgres connection string.
 
 ## Contracts
 

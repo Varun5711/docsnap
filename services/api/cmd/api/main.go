@@ -23,7 +23,11 @@ func main() {
 	}
 	defer repo.Close()
 
-	extractor := ai.NewRuleExtractor()
+	extractor := ai.Extractor(ai.NewRuleExtractor())
+	if cfg.GroqAPIKey != "" {
+		extractor = ai.NewGroqExtractor(cfg.GroqAPIKey, cfg.GroqBaseURL, cfg.GroqModel)
+	}
+
 	hasher := evidence.NewHasher()
 	anchor := flare.NewSimulatedClient()
 	server := httpapi.NewServer(cfg, repo, extractor, hasher, anchor)
