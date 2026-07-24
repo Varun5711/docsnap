@@ -39,14 +39,14 @@ func (p *Postgres) Save(ctx context.Context, evidence model.Evidence) error {
 
 	_, err = tx.Exec(ctx, `
 		INSERT INTO evidence (
-			id, url, domain, title, company, case_id, user_id, screenshot_data_url,
+			id, url, domain, title, company, case_id, user_id, screenshot_data_url, screenshot_object_key,
 			scraped_text, screenshot_hash, scraped_text_hash, metadata_commitment,
 			claims_root, evidence_commitment, flare_tx_hash, tee_certificate_hash,
 			tee_signature, verification_status, captured_at, created_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
 	`, evidence.ID, evidence.URL, evidence.Domain, evidence.Title, evidence.Company, evidence.CaseID, evidence.UserID,
-		evidence.ScreenshotDataURL, evidence.ScrapedText, evidence.ScreenshotHash, evidence.ScrapedTextHash,
+		evidence.ScreenshotDataURL, evidence.ScreenshotObjectKey, evidence.ScrapedText, evidence.ScreenshotHash, evidence.ScrapedTextHash,
 		evidence.MetadataCommitment, evidence.ClaimsRoot, evidence.EvidenceCommitment, evidence.FlareTxHash,
 		evidence.TEECertificateHash, evidence.TEESignature, evidence.VerificationStatus, evidence.CapturedAt, evidence.CreatedAt)
 	if err != nil {
@@ -91,7 +91,7 @@ func (p *Postgres) Search(ctx context.Context, params SearchParams) (model.Searc
 
 	rows, err := p.pool.Query(ctx, `
 		SELECT DISTINCT e.id, e.url, e.domain, e.title, e.company, e.case_id, e.user_id,
-			e.screenshot_data_url, e.scraped_text, e.screenshot_hash, e.scraped_text_hash,
+			e.screenshot_data_url, e.screenshot_object_key, e.scraped_text, e.screenshot_hash, e.scraped_text_hash,
 			e.metadata_commitment, e.claims_root, e.evidence_commitment, e.flare_tx_hash,
 			e.tee_certificate_hash, e.tee_signature, e.verification_status, e.captured_at, e.created_at
 		FROM evidence e
@@ -143,7 +143,7 @@ func (p *Postgres) Search(ctx context.Context, params SearchParams) (model.Searc
 func (p *Postgres) getEvidenceBase(ctx context.Context, id string) (model.Evidence, error) {
 	row := p.pool.QueryRow(ctx, `
 		SELECT id, url, domain, title, company, case_id, user_id, screenshot_data_url,
-			scraped_text, screenshot_hash, scraped_text_hash, metadata_commitment,
+			screenshot_object_key, scraped_text, screenshot_hash, scraped_text_hash, metadata_commitment,
 			claims_root, evidence_commitment, flare_tx_hash, tee_certificate_hash,
 			tee_signature, verification_status, captured_at, created_at
 		FROM evidence
@@ -202,6 +202,7 @@ func scanEvidence(row evidenceScanner) (model.Evidence, error) {
 		&item.CaseID,
 		&item.UserID,
 		&item.ScreenshotDataURL,
+		&item.ScreenshotObjectKey,
 		&item.ScrapedText,
 		&item.ScreenshotHash,
 		&item.ScrapedTextHash,

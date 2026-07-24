@@ -11,6 +11,7 @@ import (
 	"github.com/docsnap/docsnap/services/api/internal/evidence"
 	"github.com/docsnap/docsnap/services/api/internal/flare"
 	"github.com/docsnap/docsnap/services/api/internal/httpapi"
+	"github.com/docsnap/docsnap/services/api/internal/storage"
 	"github.com/docsnap/docsnap/services/api/internal/store"
 )
 
@@ -30,7 +31,8 @@ func main() {
 
 	hasher := evidence.NewHasher()
 	anchor := flare.NewSimulatedClient()
-	server := httpapi.NewServer(cfg, repo, extractor, hasher, anchor)
+	objectStore := storage.NewLocal(cfg.StoragePath)
+	server := httpapi.NewServer(cfg, repo, extractor, hasher, anchor, objectStore)
 
 	httpServer := &http.Server{
 		Addr:              cfg.Addr,

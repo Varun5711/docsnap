@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createCapture, Evidence, searchClaims, SearchResult, verifyEvidence, VerifyResult } from "@/lib/api";
+import { createCapture, Evidence, screenshotUrl, searchClaims, SearchResult, verifyEvidence, VerifyResult } from "@/lib/api";
 
 const emptyResult: SearchResult = { claims: [], items: [] };
 
@@ -176,7 +176,7 @@ export function DocSnapDashboard() {
             {!selected && <p className="mt-3 text-sm text-[var(--ledger)]">Select evidence to inspect commitments and run verification.</p>}
             {selected && (
               <div className="mt-4 space-y-4">
-                {selected.screenshotDataUrl && <img src={selected.screenshotDataUrl} alt="Captured screenshot" className="aspect-video w-full border border-[var(--line)] object-cover" />}
+                <img src={selected.screenshotDataUrl || screenshotUrl(selected.id)} alt="Captured screenshot" className="aspect-video w-full border border-[var(--line)] object-cover" />
                 <div>
                   <div className="text-xs font-medium text-[var(--ledger)]">Source</div>
                   <div className="mt-1 break-words text-sm">{selected.url}</div>
@@ -212,4 +212,3 @@ function HashLine({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-

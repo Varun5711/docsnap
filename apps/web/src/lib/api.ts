@@ -48,6 +48,10 @@ export type VerifyResult = {
 
 const API_BASE = process.env.NEXT_PUBLIC_DOCSNAP_API_URL ?? "http://localhost:8080";
 
+export function screenshotUrl(evidenceId: string): string {
+  return `${API_BASE}/api/evidence/${evidenceId}/screenshot`;
+}
+
 export async function searchClaims(params: URLSearchParams): Promise<SearchResult> {
   const response = await fetch(`${API_BASE}/api/claims?${params.toString()}`, { cache: "no-store" });
   if (!response.ok) {
@@ -79,4 +83,3 @@ export async function verifyEvidence(payload: Record<string, unknown>): Promise<
   }
   return response.json();
 }
-

@@ -14,14 +14,15 @@ type CaptureRequest struct {
 }
 
 type Evidence struct {
-	ID                 string    `json:"id"`
-	URL                string    `json:"url"`
-	Domain             string    `json:"domain"`
-	Title              string    `json:"title"`
-	Company            string    `json:"company"`
-	CaseID             string    `json:"caseId"`
-	UserID             string    `json:"userId"`
-	ScreenshotDataURL  string    `json:"screenshotDataUrl"`
+	ID                  string    `json:"id"`
+	URL                 string    `json:"url"`
+	Domain              string    `json:"domain"`
+	Title               string    `json:"title"`
+	Company             string    `json:"company"`
+	CaseID              string    `json:"caseId"`
+	UserID              string    `json:"userId"`
+	ScreenshotObjectKey string    `json:"screenshotObjectKey"`
+	ScreenshotDataURL   string    `json:"screenshotDataUrl"`
 	ScrapedText         string    `json:"scrapedText"`
 	ScreenshotHash      string    `json:"screenshotHash"`
 	ScrapedTextHash     string    `json:"scrapedTextHash"`
@@ -38,18 +39,18 @@ type Evidence struct {
 }
 
 type Claim struct {
-	ID             string  `json:"id"`
-	EvidenceID     string  `json:"evidenceId"`
-	Text           string  `json:"text"`
-	Type           string  `json:"type"`
-	Confidence     float64 `json:"confidence"`
-	SourceExcerpt  string  `json:"sourceExcerpt"`
-	Hash           string  `json:"hash"`
-	Status         string  `json:"status"`
+	ID            string  `json:"id"`
+	EvidenceID    string  `json:"evidenceId"`
+	Text          string  `json:"text"`
+	Type          string  `json:"type"`
+	Confidence    float64 `json:"confidence"`
+	SourceExcerpt string  `json:"sourceExcerpt"`
+	Hash          string  `json:"hash"`
+	Status        string  `json:"status"`
 }
 
 type AnchorRequest struct {
-	EvidenceID          string
+	EvidenceID         string
 	EvidenceCommitment string
 	ScreenshotHash     string
 	ScrapedTextHash    string
@@ -71,10 +72,10 @@ type SearchResult struct {
 }
 
 type VerifyRequest struct {
-	EvidenceID          string  `json:"evidenceId"`
-	ScreenshotDataURL   string  `json:"screenshotDataUrl"`
-	ScrapedText         string  `json:"scrapedText"`
-	Claims              []Claim `json:"claims"`
+	EvidenceID        string  `json:"evidenceId"`
+	ScreenshotDataURL string  `json:"screenshotDataUrl"`
+	ScrapedText       string  `json:"scrapedText"`
+	Claims            []Claim `json:"claims"`
 }
 
 type VerifyResult struct {
@@ -84,4 +85,3 @@ type VerifyResult struct {
 	ActualCommitment   string `json:"actualCommitment"`
 	Status             string `json:"status"`
 }
-

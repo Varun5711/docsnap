@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -14,6 +15,7 @@ import (
 	"github.com/docsnap/docsnap/services/api/internal/evidence"
 	"github.com/docsnap/docsnap/services/api/internal/flare"
 	"github.com/docsnap/docsnap/services/api/internal/model"
+	"github.com/docsnap/docsnap/services/api/internal/storage"
 	"github.com/docsnap/docsnap/services/api/internal/store"
 )
 
@@ -23,10 +25,11 @@ type Server struct {
 	extractor ai.Extractor
 	hasher    evidence.Hasher
 	flare     flare.Client
+	storage   storage.Store
 }
 
-func NewServer(cfg config.Config, store store.Repository, extractor ai.Extractor, hasher evidence.Hasher, flare flare.Client) Server {
-	return Server{cfg: cfg, store: store, extractor: extractor, hasher: hasher, flare: flare}
+func NewServer(cfg config.Config, store store.Repository, extractor ai.Extractor, hasher evidence.Hasher, flare flare.Client, objectStore storage.Store) Server {
+	return Server{cfg: cfg, store: store, extractor: extractor, hasher: hasher, flare: flare, storage: objectStore}
 }
 
 func (s Server) Routes() http.Handler {
@@ -34,6 +37,7 @@ func (s Server) Routes() http.Handler {
 	mux.HandleFunc("GET /health", s.health)
 	mux.HandleFunc("POST /api/captures", s.capture)
 	mux.HandleFunc("GET /api/claims", s.search)
+	mux.HandleFunc("GET /api/evidence/{id}/screenshot", s.getScreenshot)
 	mux.HandleFunc("GET /api/evidence/", s.getEvidence)
 	mux.HandleFunc("POST /api/verify", s.verify)
 	return s.cors(mux)
@@ -85,6 +89,16 @@ func (s Server) capture(w http.ResponseWriter, r *http.Request) {
 		Claims:            claims,
 	})
 
+	screenshotObjectKey := ""
+	if strings.TrimSpace(req.ScreenshotDataURL) != "" {
+		key, err := s.storage.PutDataURL(r.Context(), id, req.ScreenshotDataURL)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "screenshot storage failed")
+			return
+		}
+		screenshotObjectKey = key
+	}
+
 	anchor, err := s.flare.Anchor(model.AnchorRequest{
 		EvidenceID:         id,
 		EvidenceCommitment: commitment,
@@ -100,30 +114,33 @@ func (s Server) capture(w http.ResponseWriter, r *http.Request) {
 	}
 
 	item := model.Evidence{
-		ID:                 id,
-		URL:                req.URL,
-		Domain:             evidence.Domain(req.URL),
-		Title:              req.Title,
-		Company:            req.Company,
-		CaseID:             req.CaseID,
-		UserID:             req.UserID,
-		ScreenshotDataURL:  req.ScreenshotDataURL,
-		ScrapedText:        req.ScrapedText,
-		ScreenshotHash:     screenshotHash,
-		ScrapedTextHash:    textHash,
-		MetadataCommitment: metadataCommitment,
-		ClaimsRoot:         claimsRoot,
-		EvidenceCommitment: commitment,
-		FlareTxHash:        anchor.TxHash,
-		TEECertificateHash: anchor.TEECertificateHash,
-		TEESignature:       anchor.TEESignature,
-		VerificationStatus: anchor.Status,
-		CapturedAt:         req.CapturedAt,
-		CreatedAt:          time.Now().UTC(),
-		Claims:             claims,
+		ID:                  id,
+		URL:                 req.URL,
+		Domain:              evidence.Domain(req.URL),
+		Title:               req.Title,
+		Company:             req.Company,
+		CaseID:              req.CaseID,
+		UserID:              req.UserID,
+		ScreenshotObjectKey: screenshotObjectKey,
+		ScreenshotDataURL:   req.ScreenshotDataURL,
+		ScrapedText:         req.ScrapedText,
+		ScreenshotHash:      screenshotHash,
+		ScrapedTextHash:     textHash,
+		MetadataCommitment:  metadataCommitment,
+		ClaimsRoot:          claimsRoot,
+		EvidenceCommitment:  commitment,
+		FlareTxHash:         anchor.TxHash,
+		TEECertificateHash:  anchor.TEECertificateHash,
+		TEESignature:        anchor.TEESignature,
+		VerificationStatus:  anchor.Status,
+		CapturedAt:          req.CapturedAt,
+		CreatedAt:           time.Now().UTC(),
+		Claims:              claims,
 	}
 
-	if err := s.store.Save(r.Context(), item); err != nil {
+	saveItem := item
+	saveItem.ScreenshotDataURL = ""
+	if err := s.store.Save(r.Context(), saveItem); err != nil {
 		writeError(w, http.StatusInternalServerError, "save failed")
 		return
 	}
@@ -156,7 +173,39 @@ func (s Server) getEvidence(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "read failed")
 		return
 	}
+	item.ScreenshotDataURL = ""
 	writeJSON(w, http.StatusOK, item)
+}
+
+func (s Server) getScreenshot(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	item, err := s.store.GetEvidence(r.Context(), id)
+	if errors.Is(err, store.ErrNotFound) {
+		writeError(w, http.StatusNotFound, "evidence not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "read failed")
+		return
+	}
+	mediaType, dataURL, err := s.storage.ReadDataURL(r.Context(), item.ScreenshotObjectKey)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "screenshot not found")
+		return
+	}
+	parts := strings.SplitN(dataURL, ",", 2)
+	if len(parts) != 2 {
+		writeError(w, http.StatusInternalServerError, "screenshot decode failed")
+		return
+	}
+	body, err := base64.StdEncoding.DecodeString(parts[1])
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "screenshot decode failed")
+		return
+	}
+	w.Header().Set("Content-Type", mediaType)
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(body)
 }
 
 func (s Server) verify(w http.ResponseWriter, r *http.Request) {
@@ -178,6 +227,14 @@ func (s Server) verify(w http.ResponseWriter, r *http.Request) {
 
 	if req.ScreenshotDataURL == "" {
 		req.ScreenshotDataURL = item.ScreenshotDataURL
+	}
+	if req.ScreenshotDataURL == "" && item.ScreenshotObjectKey != "" {
+		_, dataURL, err := s.storage.ReadDataURL(r.Context(), item.ScreenshotObjectKey)
+		if err != nil {
+			writeError(w, http.StatusNotFound, "stored screenshot not found")
+			return
+		}
+		req.ScreenshotDataURL = dataURL
 	}
 	if req.ScrapedText == "" {
 		req.ScrapedText = item.ScrapedText
