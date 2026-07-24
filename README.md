@@ -47,7 +47,7 @@ The API uses PostgreSQL for evidence and claim search and applies its schema aut
 
 ## Required Credentials
 
-Create `.env` from `.env.example`.
+Create `.env` from `.env.example`. Detailed setup is in `docs/ENV_SETUP.md`.
 
 - `GROQ_API_KEY`: create an API key in the Groq console at `https://console.groq.com/keys`.
 - `GROQ_MODEL`: defaults to `qwen/qwen3.6-27b`, Groq's current multimodal model used for screenshot + text claim extraction.
