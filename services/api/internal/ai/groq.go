@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -86,6 +87,15 @@ func NewGroqExtractor(apiKey string, baseURL string, modelName string) GroqExtra
 }
 
 func (g GroqExtractor) Extract(req model.CaptureRequest) ([]model.Claim, error) {
+	claims, err := g.extract(req)
+	if err != nil {
+		log.Printf("groq extraction failed, falling back to rule extractor: %v", err)
+		return NewRuleExtractor().Extract(req)
+	}
+	return claims, nil
+}
+
+func (g GroqExtractor) extract(req model.CaptureRequest) ([]model.Claim, error) {
 	prompt := `Extract factual, auditable claims from this captured webpage evidence.
 Return JSON only with this shape:
 {"claims":[{"text":"specific claim text","type":"pricing|regulatory|security|performance|legal|availability|identity|other","confidence":0.0,"sourceExcerpt":"short supporting excerpt"}]}
@@ -97,7 +107,7 @@ Rules:
 - If no meaningful claims exist, return one web-evidence claim describing what was present.`
 
 	content := []groqContent{
-		{Type: "text", Text: prompt + "\n\nURL: " + req.URL + "\nTitle: " + req.Title + "\nScraped text:\n" + truncate(req.ScrapedText, 24000)},
+		{Type: "text", Text: prompt + "\n\nURL: " + req.URL + "\nTitle: " + req.Title + "\nScraped text:\n" + truncate(req.ScrapedText, 6000)},
 	}
 	if strings.TrimSpace(req.ScreenshotDataURL) != "" {
 		content = append(content, groqContent{
@@ -110,7 +120,7 @@ Rules:
 		Model:               g.model,
 		Messages:            []groqMessage{{Role: "user", Content: content}},
 		Temperature:         0,
-		MaxCompletionTokens: 1200,
+		MaxCompletionTokens: 4000,
 		TopP:                1,
 		Stream:              false,
 		ResponseFormat:      groqFormat{Type: "json_object"},
