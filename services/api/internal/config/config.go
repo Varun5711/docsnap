@@ -14,8 +14,6 @@ type Config struct {
 	GroqBaseURL  string
 	GroqModel    string
 	TEEURL       string
-	StorageMode  string
-	StoragePath  string
 	S3Endpoint   string
 	S3AccessKey  string
 	S3SecretKey  string
@@ -37,8 +35,6 @@ func Load() Config {
 		GroqBaseURL:  env("GROQ_BASE_URL", "https://api.groq.com/openai/v1"),
 		GroqModel:    env("GROQ_MODEL", "qwen/qwen3.6-27b"),
 		TEEURL:       env("DOCSNAP_TEE_URL", ""),
-		StorageMode:  env("DOCSNAP_STORAGE_MODE", "local"),
-		StoragePath:  env("DOCSNAP_STORAGE_PATH", "./tmp/evidence"),
 		S3Endpoint:   env("DOCSNAP_S3_ENDPOINT", "localhost:9000"),
 		S3AccessKey:  env("DOCSNAP_S3_ACCESS_KEY", "docsnap"),
 		S3SecretKey:  env("DOCSNAP_S3_SECRET_KEY", "docsnap-secret"),

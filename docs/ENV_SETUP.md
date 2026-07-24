@@ -140,16 +140,6 @@ If this is empty, the API uses the same certificate format through a local certi
 
 ## Storage
 
-`DOCSNAP_STORAGE_MODE`
-
-Use:
-
-```bash
-minio
-```
-
-Set to `local` to store screenshots as plain files under `DOCSNAP_STORAGE_PATH` instead.
-
 `DOCSNAP_S3_ENDPOINT`, `DOCSNAP_S3_ACCESS_KEY`, `DOCSNAP_S3_SECRET_KEY`, `DOCSNAP_S3_BUCKET`, `DOCSNAP_S3_USE_SSL`
 
 Default values match `infra/docker-compose.yml`'s `minio` service. Start it with:
