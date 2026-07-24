@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"time"
@@ -14,12 +15,18 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
 	cfg := config.Load()
-	mem := store.NewMemory()
+	repo, err := store.NewPostgres(ctx, cfg.DatabaseURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer repo.Close()
+
 	extractor := ai.NewRuleExtractor()
 	hasher := evidence.NewHasher()
 	anchor := flare.NewSimulatedClient()
-	server := httpapi.NewServer(cfg, mem, extractor, hasher, anchor)
+	server := httpapi.NewServer(cfg, repo, extractor, hasher, anchor)
 
 	httpServer := &http.Server{
 		Addr:              cfg.Addr,
@@ -32,4 +39,3 @@ func main() {
 		log.Fatal(err)
 	}
 }
-

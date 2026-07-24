@@ -19,13 +19,13 @@ import (
 
 type Server struct {
 	cfg       config.Config
-	store     *store.Memory
+	store     store.Repository
 	extractor ai.Extractor
 	hasher    evidence.Hasher
 	flare     flare.Client
 }
 
-func NewServer(cfg config.Config, store *store.Memory, extractor ai.Extractor, hasher evidence.Hasher, flare flare.Client) Server {
+func NewServer(cfg config.Config, store store.Repository, extractor ai.Extractor, hasher evidence.Hasher, flare flare.Client) Server {
 	return Server{cfg: cfg, store: store, extractor: extractor, hasher: hasher, flare: flare}
 }
 
@@ -86,7 +86,7 @@ func (s Server) capture(w http.ResponseWriter, r *http.Request) {
 	})
 
 	anchor, err := s.flare.Anchor(model.AnchorRequest{
-		EvidenceID:          id,
+		EvidenceID:         id,
 		EvidenceCommitment: commitment,
 		ScreenshotHash:     screenshotHash,
 		ScrapedTextHash:    textHash,
@@ -100,14 +100,14 @@ func (s Server) capture(w http.ResponseWriter, r *http.Request) {
 	}
 
 	item := model.Evidence{
-		ID:                id,
-		URL:               req.URL,
-		Domain:            evidence.Domain(req.URL),
-		Title:             req.Title,
-		Company:           req.Company,
-		CaseID:            req.CaseID,
-		UserID:            req.UserID,
-		ScreenshotDataURL: req.ScreenshotDataURL,
+		ID:                 id,
+		URL:                req.URL,
+		Domain:             evidence.Domain(req.URL),
+		Title:              req.Title,
+		Company:            req.Company,
+		CaseID:             req.CaseID,
+		UserID:             req.UserID,
+		ScreenshotDataURL:  req.ScreenshotDataURL,
 		ScrapedText:        req.ScrapedText,
 		ScreenshotHash:     screenshotHash,
 		ScrapedTextHash:    textHash,
@@ -123,18 +123,31 @@ func (s Server) capture(w http.ResponseWriter, r *http.Request) {
 		Claims:             claims,
 	}
 
-	s.store.Save(item)
+	if err := s.store.Save(r.Context(), item); err != nil {
+		writeError(w, http.StatusInternalServerError, "save failed")
+		return
+	}
 	writeJSON(w, http.StatusCreated, item)
 }
 
 func (s Server) search(w http.ResponseWriter, r *http.Request) {
-	result := s.store.Search(r.URL.Query().Get("q"), r.URL.Query().Get("company"), r.URL.Query().Get("domain"), r.URL.Query().Get("status"))
+	result, err := s.store.Search(r.Context(), store.SearchParams{
+		Query:   r.URL.Query().Get("q"),
+		Company: r.URL.Query().Get("company"),
+		Domain:  r.URL.Query().Get("domain"),
+		Status:  r.URL.Query().Get("status"),
+		Limit:   100,
+	})
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "search failed")
+		return
+	}
 	writeJSON(w, http.StatusOK, result)
 }
 
 func (s Server) getEvidence(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimPrefix(r.URL.Path, "/api/evidence/")
-	item, err := s.store.GetEvidence(id)
+	item, err := s.store.GetEvidence(r.Context(), id)
 	if errors.Is(err, store.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "evidence not found")
 		return
@@ -153,7 +166,7 @@ func (s Server) verify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := s.store.GetEvidence(req.EvidenceID)
+	item, err := s.store.GetEvidence(r.Context(), req.EvidenceID)
 	if errors.Is(err, store.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "evidence not found")
 		return
@@ -229,4 +242,3 @@ func randomHex(size int) string {
 	}
 	return hex.EncodeToString(bytes)
 }
-

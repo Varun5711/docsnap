@@ -3,15 +3,15 @@ package config
 import "os"
 
 type Config struct {
-	Addr          string
-	AppOrigin     string
-	FlareMode     string
-	FlareRPCURL   string
-	ContractAddr  string
-	OpenAIAPIKey  string
-	StorageMode   string
-	StoragePath   string
-	DatabaseURL   string
+	Addr         string
+	AppOrigin    string
+	FlareMode    string
+	FlareRPCURL  string
+	ContractAddr string
+	OpenAIAPIKey string
+	StorageMode  string
+	StoragePath  string
+	DatabaseURL  string
 }
 
 func Load() Config {
@@ -24,7 +24,7 @@ func Load() Config {
 		OpenAIAPIKey: env("DOCSNAP_OPENAI_API_KEY", ""),
 		StorageMode:  env("DOCSNAP_STORAGE_MODE", "local"),
 		StoragePath:  env("DOCSNAP_STORAGE_PATH", "./tmp/evidence"),
-		DatabaseURL:  env("DATABASE_URL", ""),
+		DatabaseURL:  env("DATABASE_URL", "postgres://docsnap:docsnap@localhost:5432/docsnap?sslmode=disable"),
 	}
 }
 
@@ -35,4 +35,3 @@ func env(key string, fallback string) string {
 	}
 	return value
 }
-

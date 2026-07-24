@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS evidence (
   company text NOT NULL DEFAULT '',
   case_id text NOT NULL DEFAULT '',
   user_id text NOT NULL DEFAULT '',
+  screenshot_data_url text NOT NULL DEFAULT '',
   screenshot_object_key text NOT NULL DEFAULT '',
   scraped_text text NOT NULL DEFAULT '',
   screenshot_hash text NOT NULL,
@@ -40,4 +41,3 @@ CREATE INDEX IF NOT EXISTS evidence_case_id_idx ON evidence(case_id);
 CREATE INDEX IF NOT EXISTS evidence_created_at_idx ON evidence(created_at DESC);
 CREATE INDEX IF NOT EXISTS claims_text_trgm_idx ON claims USING gin(text gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS claims_type_idx ON claims(type);
-
