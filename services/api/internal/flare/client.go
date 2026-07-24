@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math/big"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/docsnap/docsnap/services/api/internal/model"
@@ -73,6 +74,7 @@ type Coston2Client struct {
 	submitter   signer
 	reporter    *signer
 	contractABI abi.ABI
+	mu          sync.Mutex
 }
 
 type signer struct {
@@ -135,6 +137,9 @@ func NewCoston2Client(ctx context.Context, cfg Config) (*Coston2Client, error) {
 }
 
 func (c *Coston2Client) Anchor(req model.AnchorRequest) (model.AnchorResult, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 
