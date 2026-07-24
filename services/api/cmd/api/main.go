@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/docsnap/docsnap/services/api/internal/ai"
@@ -56,6 +58,18 @@ func main() {
 		Handler:           server.Routes(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
+
+	shutdownCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		<-shutdownCtx.Done()
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := httpServer.Shutdown(ctx); err != nil {
+			log.Printf("shutdown: %v", err)
+		}
+	}()
 
 	log.Printf("docsnap api listening on %s", cfg.Addr)
 	if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
