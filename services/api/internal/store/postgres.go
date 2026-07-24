@@ -23,6 +23,10 @@ func NewPostgres(ctx context.Context, databaseURL string) (*Postgres, error) {
 		pool.Close()
 		return nil, err
 	}
+	if _, err := pool.Exec(ctx, schemaSQL); err != nil {
+		pool.Close()
+		return nil, err
+	}
 	return &Postgres{pool: pool}, nil
 }
 

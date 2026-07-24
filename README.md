@@ -43,7 +43,7 @@ bun run dev:web
 bun run dev:extension
 ```
 
-The API uses PostgreSQL for evidence and claim search. Flare/FCC anchoring is currently represented by a simulator behind the `flare.Client` interface until the Coston2 contract and FCC indexer credentials are wired.
+The API uses PostgreSQL for evidence and claim search and applies its schema automatically on startup.
 
 ## Required Credentials
 
