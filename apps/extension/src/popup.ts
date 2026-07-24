@@ -22,8 +22,11 @@ button?.addEventListener("click", async () => {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab.id || !tab.windowId) throw new Error("No active tab");
+    if (!tab.url || !/^https?:\/\//.test(tab.url)) {
+      throw new Error("Open a normal webpage before capturing");
+    }
 
-    const scrape = (await chrome.tabs.sendMessage(tab.id, { type: "DOCSNAP_SCRAPE" })) as ScrapeResponse;
+    const scrape = await scrapeCurrentPage(tab.id);
     const screenshotDataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" });
 
     status.textContent = "Submitting evidence";
@@ -52,3 +55,28 @@ button?.addEventListener("click", async () => {
     button.disabled = false;
   }
 });
+
+async function scrapeCurrentPage(tabId: number): Promise<ScrapeResponse> {
+  const [result] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: () => {
+      const selectors = ["script", "style", "noscript", "svg", "canvas"];
+      const clone = document.body.cloneNode(true) as HTMLElement;
+      for (const selector of selectors) {
+        clone.querySelectorAll(selector).forEach((node) => node.remove());
+      }
+
+      return {
+        title: document.title,
+        url: location.href,
+        scrapedText: clone.innerText.replace(/\s+/g, " ").trim().slice(0, 16000)
+      };
+    }
+  });
+
+  if (!result?.result) {
+    throw new Error("Could not read the current page");
+  }
+
+  return result.result as ScrapeResponse;
+}
