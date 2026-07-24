@@ -60,16 +60,29 @@ async function scrapeCurrentPage(tabId: number): Promise<ScrapeResponse> {
   const [result] = await chrome.scripting.executeScript({
     target: { tabId },
     func: () => {
-      const selectors = ["script", "style", "noscript", "svg", "canvas"];
-      const clone = document.body.cloneNode(true) as HTMLElement;
-      for (const selector of selectors) {
-        clone.querySelectorAll(selector).forEach((node) => node.remove());
+      const skip = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "SVG", "CANVAS"]);
+      const lines: string[] = [];
+      const seen = new Set<string>();
+
+      function walk(node: Node) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const text = node.textContent?.replace(/\s+/g, " ").trim() ?? "";
+          if (text && !seen.has(text)) {
+            seen.add(text);
+            lines.push(text);
+          }
+          return;
+        }
+        if (node.nodeType !== Node.ELEMENT_NODE || skip.has((node as Element).tagName)) return;
+        node.childNodes.forEach(walk);
       }
+
+      walk(document.body);
 
       return {
         title: document.title,
         url: location.href,
-        scrapedText: clone.innerText.replace(/\s+/g, " ").trim().slice(0, 16000)
+        scrapedText: lines.join(" ").slice(0, 16000)
       };
     }
   });
