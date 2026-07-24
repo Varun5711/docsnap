@@ -12,4 +12,5 @@ out
 cache
 .gocache
 *.log
+*.tsbuildinfo
 infra/data
