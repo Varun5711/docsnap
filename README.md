@@ -55,6 +55,7 @@ Create `.env` from `.env.example`.
 - `DOCSNAP_TEE_REPORTER_PRIVATE_KEY`: optional private key for the contract's TEE reporter account. For the hackathon demo, set this to the key used as `DOCSNAP_TEE_REPORTER` during contract deployment so the API can record the certificate in the same flow.
 - `DOCSNAP_FLARE_RPC_URL`: defaults to `https://coston2-api.flare.network/ext/C/rpc`.
 - `DOCSNAP_CONTRACT_ADDRESS`: deployed `DocSnapAnchor` contract address on Coston2.
+- `DOCSNAP_TEE_URL`: optional FCC extension URL, for example `http://localhost:8787`. If omitted, the API uses a local certificate simulator.
 - `DATABASE_URL`: Postgres connection string.
 
 ## Contracts

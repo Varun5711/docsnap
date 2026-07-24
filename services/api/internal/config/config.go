@@ -13,6 +13,7 @@ type Config struct {
 	GroqAPIKey   string
 	GroqBaseURL  string
 	GroqModel    string
+	TEEURL       string
 	StorageMode  string
 	StoragePath  string
 	DatabaseURL  string
@@ -30,6 +31,7 @@ func Load() Config {
 		GroqAPIKey:   env("GROQ_API_KEY", ""),
 		GroqBaseURL:  env("GROQ_BASE_URL", "https://api.groq.com/openai/v1"),
 		GroqModel:    env("GROQ_MODEL", "qwen/qwen3.6-27b"),
+		TEEURL:       env("DOCSNAP_TEE_URL", ""),
 		StorageMode:  env("DOCSNAP_STORAGE_MODE", "local"),
 		StoragePath:  env("DOCSNAP_STORAGE_PATH", "./tmp/evidence"),
 		DatabaseURL:  env("DATABASE_URL", "postgres://docsnap:docsnap@localhost:5432/docsnap?sslmode=disable"),

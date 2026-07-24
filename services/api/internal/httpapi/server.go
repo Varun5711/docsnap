@@ -17,6 +17,7 @@ import (
 	"github.com/docsnap/docsnap/services/api/internal/model"
 	"github.com/docsnap/docsnap/services/api/internal/storage"
 	"github.com/docsnap/docsnap/services/api/internal/store"
+	"github.com/docsnap/docsnap/services/api/internal/tee"
 )
 
 type Server struct {
@@ -26,10 +27,11 @@ type Server struct {
 	hasher    evidence.Hasher
 	flare     flare.Client
 	storage   storage.Store
+	tee       tee.Certifier
 }
 
-func NewServer(cfg config.Config, store store.Repository, extractor ai.Extractor, hasher evidence.Hasher, flare flare.Client, objectStore storage.Store) Server {
-	return Server{cfg: cfg, store: store, extractor: extractor, hasher: hasher, flare: flare, storage: objectStore}
+func NewServer(cfg config.Config, store store.Repository, extractor ai.Extractor, hasher evidence.Hasher, flare flare.Client, objectStore storage.Store, certifier tee.Certifier) Server {
+	return Server{cfg: cfg, store: store, extractor: extractor, hasher: hasher, flare: flare, storage: objectStore, tee: certifier}
 }
 
 func (s Server) Routes() http.Handler {
@@ -99,6 +101,20 @@ func (s Server) capture(w http.ResponseWriter, r *http.Request) {
 		screenshotObjectKey = key
 	}
 
+	teeResult, err := s.tee.Certify(r.Context(), model.TEECertifyRequest{
+		EvidenceID:         id,
+		EvidenceCommitment: commitment,
+		ScreenshotHash:     screenshotHash,
+		ScrapedTextHash:    textHash,
+		MetadataCommitment: metadataCommitment,
+		ClaimsRoot:         claimsRoot,
+		SubmittedAt:        req.CapturedAt.UTC().Format(time.RFC3339Nano),
+	})
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "tee certification failed")
+		return
+	}
+
 	anchor, err := s.flare.Anchor(model.AnchorRequest{
 		EvidenceID:         id,
 		EvidenceCommitment: commitment,
@@ -106,6 +122,7 @@ func (s Server) capture(w http.ResponseWriter, r *http.Request) {
 		ScrapedTextHash:    textHash,
 		MetadataCommitment: metadataCommitment,
 		ClaimsRoot:         claimsRoot,
+		TEECertificateHash: teeResult.CertificateHash,
 		Submitter:          req.UserID,
 	})
 	if err != nil {
@@ -131,7 +148,7 @@ func (s Server) capture(w http.ResponseWriter, r *http.Request) {
 		EvidenceCommitment:  commitment,
 		FlareTxHash:         anchor.TxHash,
 		TEECertificateHash:  anchor.TEECertificateHash,
-		TEESignature:        anchor.TEESignature,
+		TEESignature:        teeResult.Signature,
 		VerificationStatus:  anchor.Status,
 		CapturedAt:          req.CapturedAt,
 		CreatedAt:           time.Now().UTC(),

@@ -56,6 +56,7 @@ type AnchorRequest struct {
 	ScrapedTextHash    string
 	MetadataCommitment string
 	ClaimsRoot         string
+	TEECertificateHash string
 	Submitter          string
 }
 
@@ -64,6 +65,28 @@ type AnchorResult struct {
 	TEECertificateHash string `json:"teeCertificateHash"`
 	TEESignature       string `json:"teeSignature"`
 	Status             string `json:"status"`
+}
+
+type TEECertifyRequest struct {
+	EvidenceID         string `json:"evidenceId"`
+	EvidenceCommitment string `json:"evidenceCommitment"`
+	ScreenshotHash     string `json:"screenshotHash"`
+	ScrapedTextHash    string `json:"scrapedTextHash"`
+	MetadataCommitment string `json:"metadataCommitment"`
+	ClaimsRoot         string `json:"claimsRoot"`
+	SubmittedAt        string `json:"submittedAt"`
+}
+
+type TEECertifyResult struct {
+	EvidenceID         string `json:"evidenceId"`
+	Accepted           bool   `json:"accepted"`
+	CertificateHash    string `json:"certificateHash"`
+	Signature          string `json:"signature"`
+	PublicKey          string `json:"publicKey"`
+	EvidenceCommitment string `json:"evidenceCommitment"`
+	MetadataCommitment string `json:"metadataCommitment"`
+	ClaimsRoot         string `json:"claimsRoot"`
+	CertifiedAt        string `json:"certifiedAt"`
 }
 
 type SearchResult struct {

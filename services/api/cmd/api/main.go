@@ -13,6 +13,7 @@ import (
 	"github.com/docsnap/docsnap/services/api/internal/httpapi"
 	"github.com/docsnap/docsnap/services/api/internal/storage"
 	"github.com/docsnap/docsnap/services/api/internal/store"
+	"github.com/docsnap/docsnap/services/api/internal/tee"
 )
 
 func main() {
@@ -41,7 +42,11 @@ func main() {
 		log.Fatal(err)
 	}
 	objectStore := storage.NewLocal(cfg.StoragePath)
-	server := httpapi.NewServer(cfg, repo, extractor, hasher, anchor, objectStore)
+	certifier := tee.Certifier(tee.NewLocalCertifier())
+	if cfg.TEEURL != "" {
+		certifier = tee.NewHTTPClient(cfg.TEEURL)
+	}
+	server := httpapi.NewServer(cfg, repo, extractor, hasher, anchor, objectStore, certifier)
 
 	httpServer := &http.Server{
 		Addr:              cfg.Addr,

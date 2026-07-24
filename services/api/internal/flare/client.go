@@ -48,9 +48,16 @@ func NewSimulatedClient() SimulatedClient {
 
 func (SimulatedClient) Anchor(req model.AnchorRequest) (model.AnchorResult, error) {
 	seed := req.EvidenceID + "|" + req.EvidenceCommitment + "|" + req.ClaimsRoot + "|" + time.Now().UTC().Format(time.RFC3339Nano)
+	certificateHash := req.TEECertificateHash
+	if certificateHash == "" {
+		certificateHash = digest(seed + "|tee-cert")
+	}
+	if !strings.HasPrefix(certificateHash, "0x") {
+		certificateHash = "0x" + certificateHash
+	}
 	return model.AnchorResult{
 		TxHash:             "0x" + digest(seed+"|tx"),
-		TEECertificateHash: "0x" + digest(seed+"|tee-cert"),
+		TEECertificateHash: certificateHash,
 		TEESignature:       "0x" + digest(seed+"|tee-signature") + digest(seed+"|tee-signature-2"),
 		Status:             "certified",
 	}, nil
@@ -164,7 +171,13 @@ func (c *Coston2Client) Anchor(req model.AnchorRequest) (model.AnchorResult, err
 		return model.AnchorResult{}, err
 	}
 
-	certificateHash := "0x" + digest(req.EvidenceID+"|"+req.EvidenceCommitment+"|"+req.ClaimsRoot+"|coston2")
+	certificateHash := req.TEECertificateHash
+	if certificateHash == "" {
+		certificateHash = digest(req.EvidenceID + "|" + req.EvidenceCommitment + "|" + req.ClaimsRoot + "|coston2")
+	}
+	if !strings.HasPrefix(certificateHash, "0x") {
+		certificateHash = "0x" + certificateHash
+	}
 	status := "pending"
 	txHash := submitTx.Hash().Hex()
 
