@@ -63,7 +63,6 @@ type AnchorRequest struct {
 type AnchorResult struct {
 	TxHash             string `json:"txHash"`
 	TEECertificateHash string `json:"teeCertificateHash"`
-	TEESignature       string `json:"teeSignature"`
 	Status             string `json:"status"`
 }
 

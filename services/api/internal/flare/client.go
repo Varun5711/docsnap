@@ -58,7 +58,6 @@ func (SimulatedClient) Anchor(req model.AnchorRequest) (model.AnchorResult, erro
 	return model.AnchorResult{
 		TxHash:             "0x" + digest(seed+"|tx"),
 		TEECertificateHash: certificateHash,
-		TEESignature:       "0x" + digest(seed+"|tee-signature") + digest(seed+"|tee-signature-2"),
 		Status:             "certified",
 	}, nil
 }
@@ -201,7 +200,6 @@ func (c *Coston2Client) Anchor(req model.AnchorRequest) (model.AnchorResult, err
 	return model.AnchorResult{
 		TxHash:             txHash,
 		TEECertificateHash: certificateHash,
-		TEESignature:       "",
 		Status:             status,
 	}, nil
 }
