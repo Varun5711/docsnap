@@ -16,6 +16,11 @@ type Config struct {
 	TEEURL       string
 	StorageMode  string
 	StoragePath  string
+	S3Endpoint   string
+	S3AccessKey  string
+	S3SecretKey  string
+	S3Bucket     string
+	S3UseSSL     bool
 	DatabaseURL  string
 }
 
@@ -34,6 +39,11 @@ func Load() Config {
 		TEEURL:       env("DOCSNAP_TEE_URL", ""),
 		StorageMode:  env("DOCSNAP_STORAGE_MODE", "local"),
 		StoragePath:  env("DOCSNAP_STORAGE_PATH", "./tmp/evidence"),
+		S3Endpoint:   env("DOCSNAP_S3_ENDPOINT", "localhost:9000"),
+		S3AccessKey:  env("DOCSNAP_S3_ACCESS_KEY", "docsnap"),
+		S3SecretKey:  env("DOCSNAP_S3_SECRET_KEY", "docsnap-secret"),
+		S3Bucket:     env("DOCSNAP_S3_BUCKET", "docsnap-evidence"),
+		S3UseSSL:     env("DOCSNAP_S3_USE_SSL", "false") == "true",
 		DatabaseURL:  env("DATABASE_URL", "postgres://docsnap:docsnap@localhost:5432/docsnap?sslmode=disable"),
 	}
 }

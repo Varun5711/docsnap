@@ -41,7 +41,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	objectStore := storage.NewLocal(cfg.StoragePath)
+	objectStore := storage.Store(storage.NewLocal(cfg.StoragePath))
+	if cfg.StorageMode == "minio" || cfg.StorageMode == "s3" {
+		s3Store, err := storage.NewS3(ctx, cfg.S3Endpoint, cfg.S3AccessKey, cfg.S3SecretKey, cfg.S3Bucket, cfg.S3UseSSL)
+		if err != nil {
+			log.Fatal(err)
+		}
+		objectStore = s3Store
+	}
 	certifier := tee.Certifier(tee.NewLocalCertifier())
 	if cfg.TEEURL != "" {
 		certifier = tee.NewHTTPClient(cfg.TEEURL)

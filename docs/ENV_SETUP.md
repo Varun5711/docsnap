@@ -138,15 +138,25 @@ go run ./cmd/extension
 
 If this is empty, the API uses the same certificate format through a local certifier so development still works.
 
-## Optional Storage
+## Storage
 
-`DOCSNAP_STORAGE_PATH`
+`DOCSNAP_STORAGE_MODE`
 
-Default:
+Use:
 
 ```bash
-./tmp/evidence
+minio
 ```
 
-Screenshots are stored as local files and Postgres stores the object key.
+Set to `local` to store screenshots as plain files under `DOCSNAP_STORAGE_PATH` instead.
+
+`DOCSNAP_S3_ENDPOINT`, `DOCSNAP_S3_ACCESS_KEY`, `DOCSNAP_S3_SECRET_KEY`, `DOCSNAP_S3_BUCKET`, `DOCSNAP_S3_USE_SSL`
+
+Default values match `infra/docker-compose.yml`'s `minio` service. Start it with:
+
+```bash
+docker compose -f infra/docker-compose.yml up -d minio
+```
+
+The bucket is created automatically on API startup if it doesn't exist. Console is at `http://localhost:9001` (user/pass `docsnap` / `docsnap-secret`).
 

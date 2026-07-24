@@ -35,16 +35,8 @@ func (l Local) PutDataURL(ctx context.Context, evidenceID string, dataURL string
 	if err != nil {
 		return "", err
 	}
-	exts, _ := mime.ExtensionsByType(mediaType)
-	ext := ".bin"
-	if len(exts) > 0 {
-		ext = exts[0]
-	}
-	if mediaType == "image/png" {
-		ext = ".png"
-	}
 
-	key := evidenceID + ext
+	key := evidenceID + extForMediaType(mediaType)
 	path := filepath.Join(l.root, key)
 	if err := os.MkdirAll(l.root, 0o755); err != nil {
 		return "", err
@@ -77,6 +69,17 @@ func (l Local) ReadDataURL(ctx context.Context, key string) (string, string, err
 		mediaType = "application/octet-stream"
 	}
 	return mediaType, "data:" + mediaType + ";base64," + base64.StdEncoding.EncodeToString(body), nil
+}
+
+func extForMediaType(mediaType string) string {
+	if mediaType == "image/png" {
+		return ".png"
+	}
+	exts, _ := mime.ExtensionsByType(mediaType)
+	if len(exts) > 0 {
+		return exts[0]
+	}
+	return ".bin"
 }
 
 func splitDataURL(dataURL string) (string, []byte, error) {
