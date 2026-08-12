@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -43,7 +44,24 @@ func (s Server) Routes() http.Handler {
 	mux.HandleFunc("GET /api/evidence/{id}/screenshot", s.getScreenshot)
 	mux.HandleFunc("GET /api/evidence/", s.getEvidence)
 	mux.HandleFunc("POST /api/verify", s.verify)
-	return s.cors(mux)
+	return s.cors(s.auth(mux))
+}
+
+// auth checks a shared-secret API key on every route except /health.
+// ponytail: single shared secret, not per-user. Swap for per-user keys/JWT if this ever needs multi-tenant auth.
+func (s Server) auth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if s.cfg.APIKey == "" || r.Method == http.MethodOptions || r.URL.Path == "/health" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		key := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+		if subtle.ConstantTimeCompare([]byte(key), []byte(s.cfg.APIKey)) != 1 {
+			writeError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (s Server) health(w http.ResponseWriter, r *http.Request) {

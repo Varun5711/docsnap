@@ -70,8 +70,12 @@ func (m *memoryStore) ReadDataURL(ctx context.Context, key string) (string, stri
 }
 
 func newTestServer() Server {
+	return newTestServerWithKey("")
+}
+
+func newTestServerWithKey(apiKey string) Server {
 	return NewServer(
-		config.Config{AppOrigin: "http://localhost:3000"},
+		config.Config{AppOrigin: "http://localhost:3000", APIKey: apiKey},
 		newMemoryRepo(),
 		ai.NewRuleExtractor(),
 		evidence.NewHasher(),
@@ -83,12 +87,20 @@ func newTestServer() Server {
 
 func doRequest(t *testing.T, handler http.Handler, method, path string, body any) *httptest.ResponseRecorder {
 	t.Helper()
+	return doAuthedRequest(t, handler, method, path, body, "")
+}
+
+func doAuthedRequest(t *testing.T, handler http.Handler, method, path string, body any, authHeader string) *httptest.ResponseRecorder {
+	t.Helper()
 	raw, err := json.Marshal(body)
 	if err != nil {
 		t.Fatalf("marshal body: %v", err)
 	}
 	req := httptest.NewRequest(method, path, bytes.NewReader(raw))
 	req.Header.Set("Content-Type", "application/json")
+	if authHeader != "" {
+		req.Header.Set("Authorization", authHeader)
+	}
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 	return rec
@@ -150,6 +162,39 @@ func TestCaptureRequiresURL(t *testing.T) {
 	})
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 for missing url, got %d", rec.Code)
+	}
+}
+
+func TestAuthRejectsMissingOrWrongKey(t *testing.T) {
+	handler := newTestServerWithKey("secret").Routes()
+
+	rec := doRequest(t, handler, http.MethodGet, "/api/claims", nil)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 with no key, got %d", rec.Code)
+	}
+
+	rec = doAuthedRequest(t, handler, http.MethodGet, "/api/claims", nil, "Bearer wrong")
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 with wrong key, got %d", rec.Code)
+	}
+
+	rec = doAuthedRequest(t, handler, http.MethodGet, "/api/claims", nil, "Bearer secret")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 with correct key, got %d", rec.Code)
+	}
+}
+
+func TestAuthSkippedWhenKeyUnset(t *testing.T) {
+	rec := doRequest(t, newTestServer().Routes(), http.MethodGet, "/api/claims", nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 when no api key configured, got %d", rec.Code)
+	}
+}
+
+func TestHealthNeverRequiresAuth(t *testing.T) {
+	rec := doRequest(t, newTestServerWithKey("secret").Routes(), http.MethodGet, "/health", nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for /health regardless of api key, got %d", rec.Code)
 	}
 }
 

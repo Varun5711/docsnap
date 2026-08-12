@@ -34,6 +34,10 @@ Default:
 http://localhost:3000
 ```
 
+`DOCSNAP_API_KEY`
+
+Shared-secret key clients must send as `Authorization: Bearer <key>` on every route except `/health`. Leave blank to disable auth (local dev default). Set it before exposing the API beyond localhost, and give the same value to the dashboard (`NEXT_PUBLIC_DOCSNAP_API_KEY` in `apps/web/.env`) and the extension popup's API Key field.
+
 ## Required For Groq Claim Extraction
 
 `GROQ_API_KEY`

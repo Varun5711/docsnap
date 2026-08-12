@@ -5,6 +5,7 @@ import "os"
 type Config struct {
 	Addr         string
 	AppOrigin    string
+	APIKey       string
 	FlareMode    string
 	FlareRPCURL  string
 	ContractAddr string
@@ -26,6 +27,7 @@ func Load() Config {
 	return Config{
 		Addr:         env("DOCSNAP_API_ADDR", ":8080"),
 		AppOrigin:    env("DOCSNAP_APP_ORIGIN", "http://localhost:3000"),
+		APIKey:       env("DOCSNAP_API_KEY", ""),
 		FlareMode:    env("DOCSNAP_FLARE_MODE", "simulated"),
 		FlareRPCURL:  env("DOCSNAP_FLARE_RPC_URL", "https://coston2-api.flare.network/ext/C/rpc"),
 		ContractAddr: env("DOCSNAP_CONTRACT_ADDRESS", ""),
