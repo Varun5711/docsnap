@@ -266,6 +266,14 @@ func (s Server) verify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// A request with no overrides is checking the evidence exactly as stored
+	// — the server's own data, not anything the client asserts. Only that
+	// case is trustworthy enough to persist back to the row. A request that
+	// supplies its own screenshot/text/claims (the dashboard's Tamper Test)
+	// is a synthetic drill against deliberately modified data — recording
+	// its result would wrongly brand untouched evidence as tampered.
+	pureCheck := req.ScreenshotDataURL == "" && req.ScrapedText == "" && len(req.Claims) == 0
+
 	if req.ScreenshotDataURL == "" {
 		req.ScreenshotDataURL = item.ScreenshotDataURL
 	}
@@ -299,6 +307,12 @@ func (s Server) verify(w http.ResponseWriter, r *http.Request) {
 	status := "tampered"
 	if verified {
 		status = "verified"
+	}
+
+	if pureCheck {
+		if err := s.store.UpdateVerificationStatus(r.Context(), item.ID, status); err != nil {
+			log.Printf("verify: persisting status failed: %v", err)
+		}
 	}
 
 	writeJSON(w, http.StatusOK, model.VerifyResult{

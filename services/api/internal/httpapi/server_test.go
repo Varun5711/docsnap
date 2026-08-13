@@ -47,6 +47,16 @@ func (m *memoryRepo) Search(ctx context.Context, params store.SearchParams) (mod
 	return model.SearchResult{Items: items}, nil
 }
 
+func (m *memoryRepo) UpdateVerificationStatus(ctx context.Context, id string, status string) error {
+	item, ok := m.items[id]
+	if !ok {
+		return store.ErrNotFound
+	}
+	item.VerificationStatus = status
+	m.items[id] = item
+	return nil
+}
+
 type memoryStore struct {
 	objects map[string]string
 }

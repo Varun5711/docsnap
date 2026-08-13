@@ -1,12 +1,23 @@
+/* Same dark token palette as apps/web/src/app/globals.css (ported from
+   cdex-admin-client) — plain CSS here since the popup has no Tailwind/React,
+   but same hex values, same Input/Button look. */
 :root {
-  color: #151716;
-  background: #f6f4ef;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color-scheme: dark;
+  color: #fafafa;
+  background: #09090b;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+html,
+body {
+  border-radius: 16px;
+  overflow: hidden;
 }
 
 body {
   margin: 0;
   min-width: 320px;
+  background: #09090b;
 }
 
 main {
@@ -14,24 +25,24 @@ main {
 }
 
 header {
-  border-bottom: 1px solid rgba(21, 23, 22, 0.12);
+  border-bottom: 1px solid #27272a;
   margin-bottom: 14px;
   padding-bottom: 12px;
 }
 
 header span {
-  color: #245d63;
+  color: #3c83f6;
   display: block;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 header strong {
   display: block;
   font-size: 16px;
   margin-top: 4px;
+  color: #fafafa;
 }
 
 label {
@@ -39,36 +50,94 @@ label {
   font-size: 12px;
   font-weight: 600;
   margin-top: 10px;
+  color: #a1a1aa;
 }
 
 input {
-  background: #fffdf8;
-  border: 1px solid rgba(21, 23, 22, 0.14);
-  color: #151716;
+  background: #09090b;
+  border: 1px solid #27272a;
+  border-radius: 10px;
+  color: #fafafa;
   display: block;
   font: inherit;
   margin-top: 5px;
   padding: 8px;
   width: 100%;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:focus {
+  border-color: #3c83f6;
+  box-shadow: 0 0 0 1px #3c83f6;
+}
+
+input::placeholder {
+  color: #71717a;
 }
 
 button {
-  background: #245d63;
+  background: #3c83f6;
   border: 0;
+  border-radius: 10px;
   color: white;
+  cursor: pointer;
   font: inherit;
-  font-weight: 700;
+  font-weight: 600;
   margin-top: 14px;
   padding: 10px;
   width: 100%;
+  transition: background-color 0.15s ease;
+}
+
+button:hover:not(:disabled) {
+  background: #2f6fd8;
 }
 
 button:disabled {
-  opacity: 0.6;
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 p {
-  color: #706a5d;
+  color: #a1a1aa;
   font-size: 12px;
   margin: 12px 0 0;
+}
+
+/* Connection settings — collapsed by default so API URL/API Key (dev config)
+   don't sit in the same visual tier as Company/Case ID/User ID (the actual
+   capture fields an auditor fills in). */
+details.settings {
+  margin-top: 16px;
+  border-top: 1px solid #27272a;
+  padding-top: 10px;
+}
+
+details.settings summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 6px;
+  color: #71717a;
+  list-style: none;
+}
+
+details.settings summary:hover {
+  color: #a1a1aa;
+}
+
+details.settings summary::-webkit-details-marker {
+  display: none;
+}
+
+details.settings summary svg {
+  flex-shrink: 0;
+}
+
+details.settings label {
+  margin-top: 10px;
 }

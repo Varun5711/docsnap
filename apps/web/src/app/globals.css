@@ -1,29 +1,48 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-:root {
-  --paper: #f6f4ef;
-  --ink: #151716;
-  --rail: #e8e3d9;
-  --line: rgba(21, 23, 22, 0.12);
-  --soft-line: rgba(21, 23, 22, 0.08);
-  --seal: #245d63;
-  --wax: #b04e3f;
-  --proof: #d4a017;
-  --ledger: #706a5d;
-  --surface: #fffdf8;
+/* Dark liquid-glass theme, ported from cdex-admin-client's global.css.
+   The app ships dark-only (see layout.tsx), so these are the only tokens —
+   no light :root block, no .dark class gate. */
+@theme {
+  --color-border: #27272a;
+  --color-input: #27272a;
+  --color-ring: #3c83f6;
+  --color-background: #09090b;
+  --color-foreground: #fafafa;
+  --color-primary: #3c83f6;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #27272a;
+  --color-secondary-foreground: #fafafa;
+  --color-muted: #27272a;
+  --color-muted-foreground: #a1a1aa;
+  --color-accent: #27272a;
+  --color-accent-foreground: #fafafa;
+  --color-destructive: #7f1d1d;
+  --color-destructive-foreground: #fafafa;
+  --color-card: #09090b;
+  --color-card-foreground: #fafafa;
+  --color-popover: #09090b;
+  --color-popover-foreground: #fafafa;
+  --color-success: #10b981;
+  --color-success-foreground: #ffffff;
+  --color-warning: #f59e0b;
+  --color-warning-foreground: #ffffff;
+  --color-info: #3c83f6;
+  --color-info-foreground: #ffffff;
+  --radius-lg: 0.5rem;
+  --radius-md: calc(0.5rem - 2px);
+  --radius-sm: calc(0.5rem - 4px);
 }
 
 * {
-  box-sizing: border-box;
+  border-color: var(--color-border);
 }
 
 body {
   margin: 0;
-  color: var(--ink);
-  background: var(--paper);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-space-grotesk), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 button,
@@ -33,15 +52,64 @@ select {
   font: inherit;
 }
 
-button {
+/* Native <button> defaults to cursor: default in every browser — every
+   plain <button>, including the shadcn Button, was silently missing a
+   pointer cursor unless it carried its own `cursor-pointer` class. One
+   global rule instead of hunting down every instance. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
   cursor: pointer;
+}
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
 }
 
 ::selection {
-  background: rgba(36, 93, 99, 0.18);
+  background-color: var(--color-primary);
+  color: white;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: #3c83f6;
+  box-shadow: 0 0 0 1px #3c83f6;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #09090b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
 }
 
 .hash {
   font-family: "SF Mono", Monaco, Consolas, "Liberation Mono", monospace;
 }
 
+/* Liquid Glass — the card treatment, ported verbatim from cdex-admin-client. */
+.liquid-glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 2rem;
+}
+
+.liquid-glass:hover {
+  border-color: rgba(255, 255, 255, 0.13);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
