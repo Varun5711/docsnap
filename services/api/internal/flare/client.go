@@ -71,15 +71,22 @@ func digest(value string) string {
 type Coston2Client struct {
 	rpc         *ethclient.Client
 	contract    common.Address
-	submitter   signer
+	submitter   *signer
 	reporter    *signer
 	contractABI abi.ABI
-	mu          sync.Mutex
 }
 
+// signer locks around its own nonce-fetch-through-send sequence so concurrent
+// Anchor() calls don't race on that account's nonce, without serializing
+// unrelated accounts (or the RPC calls that don't touch nonces) behind one
+// global lock.
+// ponytail: still a per-account lock, so two Anchor() calls sharing an
+// account queue behind each other. Upgrade to a local nonce tracker if that
+// becomes the throughput ceiling.
 type signer struct {
 	privateKey string
 	address    common.Address
+	mu         sync.Mutex
 }
 
 const docsnapAnchorABI = `[
@@ -118,7 +125,7 @@ func NewCoston2Client(ctx context.Context, cfg Config) (*Coston2Client, error) {
 			rpc.Close()
 			return nil, err
 		}
-		reporter = &parsed
+		reporter = parsed
 	}
 
 	parsedABI, err := abi.JSON(strings.NewReader(docsnapAnchorABI))
@@ -137,9 +144,6 @@ func NewCoston2Client(ctx context.Context, cfg Config) (*Coston2Client, error) {
 }
 
 func (c *Coston2Client) Anchor(req model.AnchorRequest) (model.AnchorResult, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 
@@ -194,7 +198,7 @@ func (c *Coston2Client) Anchor(req model.AnchorRequest) (model.AnchorResult, err
 		if err != nil {
 			return model.AnchorResult{}, err
 		}
-		certTx, err := c.send(ctx, *c.reporter, certData)
+		certTx, err := c.send(ctx, c.reporter, certData)
 		if err != nil {
 			return model.AnchorResult{}, err
 		}
@@ -209,7 +213,10 @@ func (c *Coston2Client) Anchor(req model.AnchorRequest) (model.AnchorResult, err
 	}, nil
 }
 
-func (c *Coston2Client) send(ctx context.Context, signer signer, data []byte) (*types.Transaction, error) {
+func (c *Coston2Client) send(ctx context.Context, signer *signer, data []byte) (*types.Transaction, error) {
+	signer.mu.Lock()
+	defer signer.mu.Unlock()
+
 	privateKey, err := crypto.HexToECDSA(strings.TrimPrefix(signer.privateKey, "0x"))
 	if err != nil {
 		return nil, err
@@ -246,12 +253,12 @@ func (c *Coston2Client) send(ctx context.Context, signer signer, data []byte) (*
 	return signed, nil
 }
 
-func newSigner(privateKey string) (signer, error) {
+func newSigner(privateKey string) (*signer, error) {
 	key, err := crypto.HexToECDSA(strings.TrimPrefix(privateKey, "0x"))
 	if err != nil {
-		return signer{}, err
+		return nil, err
 	}
-	return signer{privateKey: privateKey, address: crypto.PubkeyToAddress(key.PublicKey)}, nil
+	return &signer{privateKey: privateKey, address: crypto.PubkeyToAddress(key.PublicKey)}, nil
 }
 
 func hashToBytes32(value string) ([32]byte, error) {

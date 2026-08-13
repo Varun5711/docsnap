@@ -47,13 +47,21 @@ export type VerifyResult = {
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_DOCSNAP_API_URL ?? "http://localhost:8080";
+const API_KEY = process.env.NEXT_PUBLIC_DOCSNAP_API_KEY ?? "";
+
+function authHeaders(): Record<string, string> {
+  return API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {};
+}
 
 export function screenshotUrl(evidenceId: string): string {
   return `${API_BASE}/api/evidence/${evidenceId}/screenshot`;
 }
 
 export async function searchClaims(params: URLSearchParams): Promise<SearchResult> {
-  const response = await fetch(`${API_BASE}/api/claims?${params.toString()}`, { cache: "no-store" });
+  const response = await fetch(`${API_BASE}/api/claims?${params.toString()}`, {
+    cache: "no-store",
+    headers: authHeaders()
+  });
   if (!response.ok) {
     throw new Error("Search failed");
   }
@@ -63,7 +71,7 @@ export async function searchClaims(params: URLSearchParams): Promise<SearchResul
 export async function createCapture(payload: Record<string, unknown>): Promise<Evidence> {
   const response = await fetch(`${API_BASE}/api/captures`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(payload)
   });
   if (!response.ok) {
@@ -75,7 +83,7 @@ export async function createCapture(payload: Record<string, unknown>): Promise<E
 export async function verifyEvidence(payload: Record<string, unknown>): Promise<VerifyResult> {
   const response = await fetch(`${API_BASE}/api/verify`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(payload)
   });
   if (!response.ok) {

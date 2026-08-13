@@ -13,6 +13,7 @@ type Repository interface {
 	Save(ctx context.Context, evidence model.Evidence) error
 	GetEvidence(ctx context.Context, id string) (model.Evidence, error)
 	Search(ctx context.Context, params SearchParams) (model.SearchResult, error)
+	UpdateVerificationStatus(ctx context.Context, id string, status string) error
 }
 
 type SearchParams struct {

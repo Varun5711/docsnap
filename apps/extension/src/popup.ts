@@ -1,6 +1,6 @@
 import "./style.css";
 
-const apiBase = "http://localhost:8080";
+const DEFAULT_API_URL = "http://localhost:8080";
 
 type ScrapeResponse = {
   title: string;
@@ -8,18 +8,33 @@ type ScrapeResponse = {
   scrapedText: string;
 };
 
+type StoredSettings = {
+  apiUrl?: string;
+  apiKey?: string;
+};
+
 const button = document.querySelector<HTMLButtonElement>("#capture");
 const status = document.querySelector<HTMLParagraphElement>("#status");
 const company = document.querySelector<HTMLInputElement>("#company");
 const caseId = document.querySelector<HTMLInputElement>("#caseId");
 const userId = document.querySelector<HTMLInputElement>("#userId");
+const apiUrl = document.querySelector<HTMLInputElement>("#apiUrl");
+const apiKey = document.querySelector<HTMLInputElement>("#apiKey");
+
+chrome.storage.sync.get(["apiUrl", "apiKey"]).then((stored: StoredSettings) => {
+  if (apiUrl && stored.apiUrl) apiUrl.value = stored.apiUrl;
+  if (apiKey && stored.apiKey) apiKey.value = stored.apiKey;
+});
 
 button?.addEventListener("click", async () => {
-  if (!status || !button || !company || !caseId || !userId) return;
+  if (!status || !button || !company || !caseId || !userId || !apiUrl || !apiKey) return;
   button.disabled = true;
   status.textContent = "Capturing current page";
 
   try {
+    const base = apiUrl.value.trim() || DEFAULT_API_URL;
+    await chrome.storage.sync.set({ apiUrl: base, apiKey: apiKey.value });
+
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab.id || !tab.windowId) throw new Error("No active tab");
     if (!tab.url || !/^https?:\/\//.test(tab.url)) {
@@ -31,9 +46,12 @@ button?.addEventListener("click", async () => {
 
     status.textContent = "Submitting evidence";
 
-    const response = await fetch(`${apiBase}/api/captures`, {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (apiKey.value) headers.Authorization = `Bearer ${apiKey.value}`;
+
+    const response = await fetch(`${base}/api/captures`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         url: scrape.url,
         title: scrape.title,

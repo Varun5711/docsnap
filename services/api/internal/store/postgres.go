@@ -144,6 +144,17 @@ func (p *Postgres) Search(ctx context.Context, params SearchParams) (model.Searc
 	return model.SearchResult{Claims: claims, Items: items}, nil
 }
 
+func (p *Postgres) UpdateVerificationStatus(ctx context.Context, id string, status string) error {
+	tag, err := p.pool.Exec(ctx, `UPDATE evidence SET verification_status = $1 WHERE id = $2`, status, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 func (p *Postgres) getEvidenceBase(ctx context.Context, id string) (model.Evidence, error) {
 	row := p.pool.QueryRow(ctx, `
 		SELECT id, url, domain, title, company, case_id, user_id, screenshot_data_url,

@@ -13,10 +13,21 @@
         <strong>Capture claim evidence</strong>
       </header>
       <label>Company<input id="company" value="ExampleCo" /></label>
-      <label>Case ID<input id="caseId" value="CASE-2026-001" /></label>
-      <label>User ID<input id="userId" value="auditor@docsnap.local" /></label>
+      <label>Case id<input id="caseId" value="CASE-2026-001" /></label>
+      <label>User id<input id="userId" value="auditor@docsnap.local" /></label>
       <button id="capture">Capture with DocSnap</button>
       <p id="status">Ready</p>
+      <details class="settings">
+        <summary>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          Connection settings
+        </summary>
+        <label>Api url<input id="apiUrl" value="http://localhost:8080" /></label>
+        <label>Api key<input id="apiKey" type="password" /></label>
+      </details>
     </main>
   </body>
 </html>
