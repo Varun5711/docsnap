@@ -509,6 +509,15 @@ func (s Server) getProof(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "read failed")
 		return
 	}
+	screenshotDataURL := ev.ScreenshotDataURL
+	if screenshotDataURL == "" && ev.ScreenshotObjectKey != "" {
+		if _, dataURL, err := s.storage.ReadDataURL(r.Context(), ev.ScreenshotObjectKey); err == nil {
+			screenshotDataURL = dataURL
+		} else {
+			log.Printf("getProof: screenshot read failed: %v", err)
+		}
+	}
+
 	writeJSON(w, http.StatusOK, model.Proof{
 		EvidenceID:         ev.ID,
 		URL:                ev.URL,
@@ -521,6 +530,7 @@ func (s Server) getProof(w http.ResponseWriter, r *http.Request) {
 		TEECertificateHash: ev.TEECertificateHash,
 		VerificationStatus: ev.VerificationStatus,
 		CapturedAt:         ev.CapturedAt,
+		ScreenshotDataURL:  screenshotDataURL,
 	})
 }
 

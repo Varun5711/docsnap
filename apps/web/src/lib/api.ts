@@ -114,6 +114,7 @@ export type Proof = {
   teeCertificateHash: string;
   verificationStatus: string;
   capturedAt: string;
+  screenshotDataUrl?: string;
 };
 import { getToken } from "@/lib/auth";
 const API_BASE =

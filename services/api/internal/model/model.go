@@ -184,6 +184,12 @@ type Proof struct {
 	TEECertificateHash string    `json:"teeCertificateHash"`
 	VerificationStatus string    `json:"verificationStatus"`
 	CapturedAt         time.Time `json:"capturedAt"`
+	// ScreenshotDataURL: the proof page is already fully public and
+	// unauthenticated once someone has the link — a hash-only page is only
+	// useful to someone who already has an independent copy to compare
+	// against, which defeats "share this as evidence". Best-effort: left
+	// blank if the screenshot can't be read, never fails the whole request.
+	ScreenshotDataURL string `json:"screenshotDataUrl,omitempty"`
 }
 
 type AnchorRequest struct {

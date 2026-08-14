@@ -32,71 +32,107 @@ export default async function ProofPage({
     );
   }
   return (
-    <main className="mx-auto max-w-2xl space-y-6 px-6 py-16">
+    <main className="mx-auto max-w-6xl space-y-5 px-6 py-16">
       <div>
         <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground/60">
           DocSnap Proof
         </div>
-        <h1 className="mt-2 text-xl font-semibold text-foreground">
+        <h1 className="mt-2 text-2xl font-semibold text-foreground">
           Independently verifiable evidence record
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          This page needs no login and no trust in DocSnap's own UI — everything
-          below can be independently re-derived and checked against what's
-          anchored on Coston2.
+        <p className="mt-2 text-base text-muted-foreground">
+          This page needs no login and no trust in DocSnap&apos;s own UI —
+          everything below can be independently re-derived and checked
+          against what&apos;s anchored on Coston2.
         </p>
       </div>
 
-      <div className="liquid-glass space-y-4 p-6">
-        <div>
-          <div className="text-xs font-medium text-muted-foreground/70">
-            Source
-          </div>
-          <a
-            href={proof.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-1 block break-all text-sm text-primary hover:underline"
-          >
-            {proof.url}
-          </a>
-        </div>
-        <div>
-          <div className="text-xs font-medium text-muted-foreground/70">
-            Captured at
-          </div>
-          <div className="mt-1 text-sm text-foreground/90">
-            {new Date(proof.capturedAt).toUTCString()}
-          </div>
-        </div>
-        <div>
-          <div className="text-xs font-medium text-muted-foreground/70">
-            Status
-          </div>
-          <div className="mt-1 text-sm text-foreground/90">
-            {proof.verificationStatus}
+      <div className="grid grid-cols-12 items-stretch gap-5">
+        <div className="col-span-12 lg:col-span-7">
+          <div className="liquid-glass flex h-full flex-col p-6">
+            <div className="text-sm font-semibold text-foreground">
+              Screenshot
+            </div>
+            <div className="mt-3 flex-1">
+              {proof.screenshotDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={proof.screenshotDataUrl}
+                  alt="Captured screenshot"
+                  className="w-full rounded-lg border border-white/[0.08] object-cover"
+                />
+              ) : (
+                <div className="flex h-full min-h-[240px] items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.02] text-sm text-muted-foreground/60">
+                  No screenshot for this capture
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        <HashLine label="Screenshot hash" value={proof.screenshotHash} />
-        <HashLine label="Scraped text hash" value={proof.scrapedTextHash} />
-        <HashLine
-          label="Metadata commitment"
-          value={proof.metadataCommitment}
-        />
-        <HashLine label="Claims root" value={proof.claimsRoot} />
-        <HashLine
-          label="Evidence commitment"
-          value={proof.evidenceCommitment}
-        />
-        <HashLine label="Flare transaction" value={proof.flareTxHash} />
-        <HashLine
-          label="TEE certificate hash"
-          value={proof.teeCertificateHash}
-        />
+        <div className="col-span-12 lg:col-span-5">
+          <div className="liquid-glass flex h-full flex-col space-y-4 p-6">
+            <div>
+              <div className="text-xs font-medium text-muted-foreground/70">
+                Source
+              </div>
+              <a
+                href={proof.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 block break-all text-sm text-primary hover:underline"
+              >
+                {proof.url}
+              </a>
+            </div>
+            <div>
+              <div className="text-xs font-medium text-muted-foreground/70">
+                Captured at
+              </div>
+              <div className="mt-1 text-base text-foreground/90">
+                {new Date(proof.capturedAt).toUTCString()}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs font-medium text-muted-foreground/70">
+                Status
+              </div>
+              <div className="mt-1 text-base capitalize text-foreground/90">
+                {proof.verificationStatus}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="liquid-glass space-y-2 p-6 text-sm text-muted-foreground">
+      <div className="liquid-glass p-6">
+        <div className="mb-4 text-sm font-semibold text-foreground">
+          Cryptographic Commitments
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <HashLine label="Screenshot hash" value={proof.screenshotHash} />
+          <HashLine
+            label="Scraped text hash"
+            value={proof.scrapedTextHash}
+          />
+          <HashLine
+            label="Metadata commitment"
+            value={proof.metadataCommitment}
+          />
+          <HashLine label="Claims root" value={proof.claimsRoot} />
+          <HashLine
+            label="Evidence commitment"
+            value={proof.evidenceCommitment}
+          />
+          <HashLine label="Flare transaction" value={proof.flareTxHash} />
+          <HashLine
+            label="TEE certificate hash"
+            value={proof.teeCertificateHash}
+          />
+        </div>
+      </div>
+
+      <div className="liquid-glass space-y-2 p-6 text-base text-muted-foreground">
         <p className="font-semibold text-foreground">Verify independently</p>
         <p>
           The evidence commitment is{" "}
@@ -118,10 +154,10 @@ export default async function ProofPage({
           to confirm this exact commitment was anchored on-chain.
         </p>
         <p>
-          DocSnap proves what was captured, when, and whether it's been modified
-          since — it does not claim everything on the original page is true. See
-          the linked investigation for the evidence-based verdict on the claim
-          itself.
+          DocSnap proves what was captured, when, and whether it&apos;s been
+          modified since — it does not claim everything on the original page
+          is true. See the linked investigation for the evidence-based
+          verdict on the claim itself.
         </p>
       </div>
     </main>
