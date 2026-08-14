@@ -391,7 +391,7 @@ func (p *Postgres) claimsForEvidence(ctx context.Context, evidenceIDs []string) 
 	}
 
 	rows, err := p.pool.Query(ctx, `
-		SELECT id, evidence_id, text, type, confidence, source_excerpt, hash, status, published_by
+		SELECT id, evidence_id, text, type, confidence, source_excerpt, hash, status, published_by, COALESCE(forked_from_claim_id, '')
 		FROM claims
 		WHERE evidence_id = ANY($1)
 		ORDER BY confidence DESC, id ASC
@@ -403,7 +403,7 @@ func (p *Postgres) claimsForEvidence(ctx context.Context, evidenceIDs []string) 
 
 	for rows.Next() {
 		var claim model.Claim
-		if err := rows.Scan(&claim.ID, &claim.EvidenceID, &claim.Text, &claim.Type, &claim.Confidence, &claim.SourceExcerpt, &claim.Hash, &claim.Status, &claim.PublishedBy); err != nil {
+		if err := rows.Scan(&claim.ID, &claim.EvidenceID, &claim.Text, &claim.Type, &claim.Confidence, &claim.SourceExcerpt, &claim.Hash, &claim.Status, &claim.PublishedBy, &claim.ForkedFromClaimID); err != nil {
 			return nil, err
 		}
 		result[claim.EvidenceID] = append(result[claim.EvidenceID], claim)

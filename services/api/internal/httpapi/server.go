@@ -333,6 +333,16 @@ func (s Server) getScreenshot(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(body)
 }
 
+func originalClaimsOnly(claims []model.Claim) []model.Claim {
+	out := make([]model.Claim, 0, len(claims))
+	for _, c := range claims {
+		if c.ForkedFromClaimID == "" {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
 func (s Server) verify(w http.ResponseWriter, r *http.Request) {
 	var req model.VerifyRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -367,7 +377,13 @@ func (s Server) verify(w http.ResponseWriter, r *http.Request) {
 		req.ScrapedText = item.ScrapedText
 	}
 	if len(req.Claims) == 0 {
-		req.Claims = item.Claims
+		// A fork shares its parent's evidence_id (same underlying capture)
+		// but was never part of the claim set evidence_commitment was
+		// computed from at capture time — including it here would report
+		// unmodified evidence as "tampered" the moment anyone forks one of
+		// its claims. Only claims that were part of the original capture
+		// belong in a hash recomputation.
+		req.Claims = originalClaimsOnly(item.Claims)
 	}
 
 	_, _, _, _, actual, _ := s.hasher.Evidence(evidence.HashInput{
