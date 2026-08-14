@@ -62,6 +62,7 @@ func (s Server) Routes() http.Handler {
 	mux.HandleFunc("GET /api/claims/similar", s.similarClaims)
 	mux.HandleFunc("GET /api/claim/{slug}", s.getCanonicalClaim)
 	mux.HandleFunc("POST /api/claims/{id}/evidence", s.addEvidence)
+	mux.HandleFunc("POST /api/contributions/{id}/report", s.reportContribution)
 	mux.HandleFunc("POST /api/claims/{id}/fork", s.forkClaim)
 	mux.HandleFunc("POST /api/claims/{id}/publish", s.publishClaim)
 
@@ -332,6 +333,16 @@ func (s Server) getScreenshot(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(body)
 }
 
+func originalClaimsOnly(claims []model.Claim) []model.Claim {
+	out := make([]model.Claim, 0, len(claims))
+	for _, c := range claims {
+		if c.ForkedFromClaimID == "" {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
 func (s Server) verify(w http.ResponseWriter, r *http.Request) {
 	var req model.VerifyRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -366,7 +377,13 @@ func (s Server) verify(w http.ResponseWriter, r *http.Request) {
 		req.ScrapedText = item.ScrapedText
 	}
 	if len(req.Claims) == 0 {
-		req.Claims = item.Claims
+		// A fork shares its parent's evidence_id (same underlying capture)
+		// but was never part of the claim set evidence_commitment was
+		// computed from at capture time — including it here would report
+		// unmodified evidence as "tampered" the moment anyone forks one of
+		// its claims. Only claims that were part of the original capture
+		// belong in a hash recomputation.
+		req.Claims = originalClaimsOnly(item.Claims)
 	}
 
 	_, _, _, _, actual, _ := s.hasher.Evidence(evidence.HashInput{
@@ -467,6 +484,17 @@ func (s Server) getInvestigation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ev.ScreenshotDataURL = ""
+	// Best-effort attribution — a fork should say whose investigation it
+	// built on, not just "an earlier investigation". Never fails the
+	// request over a display nicety: if the parent or its owner can't be
+	// resolved, ForkedFromOwnerName just stays blank.
+	if claim.ForkedFromClaimID != "" {
+		if parent, err := s.store.GetClaim(r.Context(), claim.ForkedFromClaimID); err == nil && parent.PublishedBy != "" {
+			if owner, err := s.store.GetUserByID(r.Context(), parent.PublishedBy); err == nil {
+				claim.ForkedFromOwnerName = owner.DisplayName
+			}
+		}
+	}
 	writeJSON(w, http.StatusOK, model.Investigation{Claim: claim, Evidence: ev})
 }
 
@@ -481,6 +509,15 @@ func (s Server) getProof(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "read failed")
 		return
 	}
+	screenshotDataURL := ev.ScreenshotDataURL
+	if screenshotDataURL == "" && ev.ScreenshotObjectKey != "" {
+		if _, dataURL, err := s.storage.ReadDataURL(r.Context(), ev.ScreenshotObjectKey); err == nil {
+			screenshotDataURL = dataURL
+		} else {
+			log.Printf("getProof: screenshot read failed: %v", err)
+		}
+	}
+
 	writeJSON(w, http.StatusOK, model.Proof{
 		EvidenceID:         ev.ID,
 		URL:                ev.URL,
@@ -493,6 +530,7 @@ func (s Server) getProof(w http.ResponseWriter, r *http.Request) {
 		TEECertificateHash: ev.TEECertificateHash,
 		VerificationStatus: ev.VerificationStatus,
 		CapturedAt:         ev.CapturedAt,
+		ScreenshotDataURL:  screenshotDataURL,
 	})
 }
 

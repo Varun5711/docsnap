@@ -10,6 +10,17 @@ export const metadata: Metadata = {
   title: "DocSnap",
   description:
     "Verifiable claim intelligence — investigate claims, see the evidence, and create cryptographically verifiable proofs of what was published online.",
+  icons: {
+    icon: "/docsnap-logo.png",
+    shortcut: "/docsnap-logo.png",
+    apple: "/docsnap-logo.png",
+  },
+  openGraph: {
+    title: "DocSnap",
+    description:
+      "Verifiable claim intelligence — investigate claims, see the evidence, and create cryptographically verifiable proofs of what was published online.",
+    images: ["/docsnap-logo.png"],
+  },
 };
 export default function RootLayout({
   children,

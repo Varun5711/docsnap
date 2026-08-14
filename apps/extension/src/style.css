@@ -27,9 +27,18 @@ header {
   padding-bottom: 12px;
 }
 
+header .brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+header .brand img {
+  border-radius: 5px;
+}
+
 header span {
   color: #3c83f6;
-  display: block;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;

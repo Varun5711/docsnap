@@ -32,6 +32,7 @@ type Repository interface {
 	PublishClaim(ctx context.Context, claimID, canonicalClaimID, visibility, publishedBy string) error
 	ForkClaim(ctx context.Context, parentID, newClaimID, ownerID string) (model.Claim, error)
 	AddEvidenceContribution(ctx context.Context, contribution model.EvidenceContribution) error
+	ReportContribution(ctx context.Context, contributionID, reporterID string) error
 	Discover(ctx context.Context) (recent []model.Claim, trending []model.Claim, err error)
 	DomainTrust(ctx context.Context, domain string) (model.DomainTrust, error)
 }

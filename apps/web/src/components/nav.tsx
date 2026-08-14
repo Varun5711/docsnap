@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 export function Nav() {
@@ -10,8 +11,16 @@ export function Nav() {
         <div className="flex items-center gap-6">
           <Link
             href="/"
-            className="text-sm font-semibold uppercase tracking-[0.18em] text-foreground"
+            className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-foreground"
           >
+            <Image
+              src="/docsnap-logo.png"
+              alt=""
+              width={28}
+              height={28}
+              className="rounded-md"
+              priority
+            />
             DocSnap
           </Link>
           <nav className="hidden items-center gap-4 text-sm text-muted-foreground sm:flex">

@@ -46,6 +46,7 @@ export type Claim = {
   visibility?: "private" | "unlisted" | "public";
   publishedBy?: string;
   forkedFromClaimId?: string;
+  forkedFromOwnerName?: string;
   contributions?: EvidenceContribution[];
 };
 export type Evidence = {
@@ -113,18 +114,14 @@ export type Proof = {
   teeCertificateHash: string;
   verificationStatus: string;
   capturedAt: string;
+  screenshotDataUrl?: string;
 };
 import { getToken } from "@/lib/auth";
 const API_BASE =
   process.env.NEXT_PUBLIC_DOCSNAP_API_URL ?? "http://localhost:8080";
-const API_KEY = process.env.NEXT_PUBLIC_DOCSNAP_API_KEY ?? "";
-function authHeaders(): Record<string, string> {
-  return API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {};
-}
 function personHeaders(): Record<string, string> {
   const token = getToken();
-  if (token) return { Authorization: `Bearer ${token}` };
-  return authHeaders();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 export async function fetchScreenshotObjectUrl(
   evidenceId: string,
@@ -132,7 +129,7 @@ export async function fetchScreenshotObjectUrl(
   const response = await fetch(
     `${API_BASE}/api/evidence/${evidenceId}/screenshot`,
     {
-      headers: authHeaders(),
+      headers: personHeaders(),
     },
   );
   if (!response.ok) {
@@ -146,7 +143,7 @@ export async function searchClaims(
 ): Promise<SearchResult> {
   const response = await fetch(`${API_BASE}/api/claims?${params.toString()}`, {
     cache: "no-store",
-    headers: authHeaders(),
+    headers: personHeaders(),
   });
   if (!response.ok) {
     throw new Error("Search failed");
@@ -158,7 +155,7 @@ export async function verifyEvidence(
 ): Promise<VerifyResult> {
   const response = await fetch(`${API_BASE}/api/verify`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
+    headers: { "Content-Type": "application/json", ...personHeaders() },
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
@@ -183,7 +180,7 @@ export async function investigateClaim(claimId: string): Promise<Claim> {
     `${API_BASE}/api/claims/${claimId}/investigate`,
     {
       method: "POST",
-      headers: authHeaders(),
+      headers: personHeaders(),
     },
   );
   if (!response.ok) {
@@ -217,9 +214,11 @@ export type EvidenceContribution = {
   id: string;
   claimId: string;
   contributorId: string;
+  contributorName?: string;
   type: "support" | "contradict" | "context" | "correction";
   url: string;
   note: string;
+  flagged: boolean;
   createdAt: string;
 };
 export async function discover(): Promise<{
@@ -274,6 +273,16 @@ export async function addEvidence(
     throw new Error(body.error || "Adding evidence failed");
   }
   return response.json();
+}
+export async function reportContribution(contributionId: string): Promise<void> {
+  const response = await fetch(
+    `${API_BASE}/api/contributions/${contributionId}/report`,
+    { method: "POST", headers: personHeaders() },
+  );
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error || "Report failed");
+  }
 }
 export async function getDomainTrust(domain: string): Promise<DomainTrust> {
   const response = await fetch(

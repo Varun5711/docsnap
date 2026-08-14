@@ -30,6 +30,18 @@ function setBadge(text: string, color = "#3c83f6") {
 function clearBadgeSoon() {
   setTimeout(() => chrome.action.setBadgeText({ text: "" }), 4000);
 }
+// Both context-menu actions run entirely in the background service worker —
+// there's no popup open to show status text in, so the badge dot is easy to
+// miss entirely. A system notification is the one thing that reaches the
+// user regardless of what they're looking at.
+function notify(title: string, message: string) {
+  chrome.notifications.create({
+    type: "basic",
+    iconUrl: chrome.runtime.getURL("icons/icon128.png"),
+    title,
+    message,
+  });
+}
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (!tab?.id || !tab.url) return;
   if (info.menuItemId === VERIFY_SELECTION_ID && info.selectionText) {
@@ -60,11 +72,13 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         at: new Date().toISOString(),
       });
       setBadge("✓", "#10b981");
+      notify("Verified", investigated.investigationStatus || "Investigation complete — opening result.");
       chrome.tabs.create({
         url: `${WEB_APP_ORIGIN}/investigations/${claimId}`,
       });
     } catch {
       setBadge("!", "#ef4444");
+      notify("Verify failed", "Couldn't verify that selection — try again.");
     } finally {
       clearBadgeSoon();
     }
@@ -117,7 +131,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         tab.windowId!,
         { format: "png" },
       );
-      await capture(settings.apiUrl, settings.apiKey, {
+      const evidence = await capture(settings.apiUrl, settings.apiKey, {
         url: scrape.result.url,
         title: scrape.result.title,
         company,
@@ -127,8 +141,16 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         scrapedText: scrape.result.scrapedText,
       });
       setBadge("✓", "#10b981");
+      notify(
+        "Evidence captured",
+        `${evidence.claims?.length ?? 0} claim(s) found — opening proof.`,
+      );
+      chrome.tabs.create({
+        url: `${WEB_APP_ORIGIN}/proof/${evidence.id}`,
+      });
     } catch {
       setBadge("!", "#ef4444");
+      notify("Capture failed", "Couldn't capture this page — try again.");
     } finally {
       clearBadgeSoon();
     }

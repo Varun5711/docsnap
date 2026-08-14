@@ -121,7 +121,9 @@ func (p *Postgres) Search(ctx context.Context, params SearchParams) (model.Searc
 			AND ($2 = '' OR e.company ILIKE '%' || $2 || '%')
 			AND ($3 = '' OR e.domain ILIKE '%' || $3 || '%')
 			AND ($4 = '' OR e.verification_status = $4)
-			AND ($5 = '' OR e.published_by = $5)
+			AND ($5 = '' OR e.published_by = $5 OR EXISTS (
+				SELECT 1 FROM claims c2 WHERE c2.evidence_id = e.id AND c2.published_by = $5
+			))
 		GROUP BY e.id
 		ORDER BY rank DESC, e.created_at DESC
 		LIMIT $6
@@ -161,7 +163,21 @@ func (p *Postgres) Search(ctx context.Context, params SearchParams) (model.Searc
 
 	claims := make([]model.Claim, 0)
 	for i := range items {
-		items[i].Claims = claimsByEvidence[items[i].ID]
+		evidenceClaims := claimsByEvidence[items[i].ID]
+		// A fork keeps the parent's evidence_id, so evidence you don't own
+		// can still be in your results (because one of its claims is
+		// yours). Don't leak the rest of that evidence's claims — someone
+		// else's private captures — into your view of it.
+		if owner != "" && items[i].PublishedBy != owner {
+			filtered := make([]model.Claim, 0, len(evidenceClaims))
+			for _, c := range evidenceClaims {
+				if c.PublishedBy == owner {
+					filtered = append(filtered, c)
+				}
+			}
+			evidenceClaims = filtered
+		}
+		items[i].Claims = evidenceClaims
 		for _, claim := range items[i].Claims {
 			if query == "" || containsFold(claim.Text, query) || containsFold(claim.SourceExcerpt, query) || containsFold(claim.Type, query) {
 				claims = append(claims, claim)
@@ -264,11 +280,18 @@ func (p *Postgres) sourcesForClaim(ctx context.Context, claimID string) ([]model
 }
 
 func (p *Postgres) contributionsForClaim(ctx context.Context, claimID string) ([]model.EvidenceContribution, error) {
+	// Flagged at 3+ independent reports — same "one report shouldn't sink
+	// it" guard as the domain trust min-sample, so a single grudge report
+	// can't flag a legitimate contribution.
 	rows, err := p.pool.Query(ctx, `
-		SELECT id, claim_id, contributor_id, type, url, note, created_at
-		FROM evidence_contributions
-		WHERE claim_id = $1
-		ORDER BY created_at DESC
+		SELECT ec.id, ec.claim_id, ec.contributor_id, COALESCE(u.display_name, ''), ec.type, ec.url, ec.note, ec.created_at,
+			COUNT(cr.id) >= 3
+		FROM evidence_contributions ec
+		LEFT JOIN users u ON u.id = ec.contributor_id
+		LEFT JOIN contribution_reports cr ON cr.contribution_id = ec.id
+		WHERE ec.claim_id = $1
+		GROUP BY ec.id, u.display_name
+		ORDER BY ec.created_at DESC
 	`, claimID)
 	if err != nil {
 		return nil, err
@@ -278,7 +301,7 @@ func (p *Postgres) contributionsForClaim(ctx context.Context, claimID string) ([
 	contributions := make([]model.EvidenceContribution, 0)
 	for rows.Next() {
 		var c model.EvidenceContribution
-		if err := rows.Scan(&c.ID, &c.ClaimID, &c.ContributorID, &c.Type, &c.URL, &c.Note, &c.CreatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.ClaimID, &c.ContributorID, &c.ContributorName, &c.Type, &c.URL, &c.Note, &c.CreatedAt, &c.Flagged); err != nil {
 			return nil, err
 		}
 		contributions = append(contributions, c)
@@ -368,7 +391,7 @@ func (p *Postgres) claimsForEvidence(ctx context.Context, evidenceIDs []string) 
 	}
 
 	rows, err := p.pool.Query(ctx, `
-		SELECT id, evidence_id, text, type, confidence, source_excerpt, hash, status
+		SELECT id, evidence_id, text, type, confidence, source_excerpt, hash, status, published_by, COALESCE(forked_from_claim_id, '')
 		FROM claims
 		WHERE evidence_id = ANY($1)
 		ORDER BY confidence DESC, id ASC
@@ -380,7 +403,7 @@ func (p *Postgres) claimsForEvidence(ctx context.Context, evidenceIDs []string) 
 
 	for rows.Next() {
 		var claim model.Claim
-		if err := rows.Scan(&claim.ID, &claim.EvidenceID, &claim.Text, &claim.Type, &claim.Confidence, &claim.SourceExcerpt, &claim.Hash, &claim.Status); err != nil {
+		if err := rows.Scan(&claim.ID, &claim.EvidenceID, &claim.Text, &claim.Type, &claim.Confidence, &claim.SourceExcerpt, &claim.Hash, &claim.Status, &claim.PublishedBy, &claim.ForkedFromClaimID); err != nil {
 			return nil, err
 		}
 		result[claim.EvidenceID] = append(result[claim.EvidenceID], claim)

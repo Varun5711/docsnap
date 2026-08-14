@@ -105,22 +105,33 @@ type Claim struct {
 	InvestigatedAt          *time.Time      `json:"investigatedAt,omitempty"`
 	Sources                 []Source        `json:"sources,omitempty"`
 
-	CanonicalClaimID   string                 `json:"canonicalClaimId,omitempty"`
-	CanonicalClaimSlug string                 `json:"canonicalClaimSlug,omitempty"`
-	Visibility         string                 `json:"visibility,omitempty"`
-	PublishedBy        string                 `json:"publishedBy,omitempty"`
-	ForkedFromClaimID  string                 `json:"forkedFromClaimId,omitempty"`
-	Contributions      []EvidenceContribution `json:"contributions,omitempty"`
+	CanonicalClaimID   string `json:"canonicalClaimId,omitempty"`
+	CanonicalClaimSlug string `json:"canonicalClaimSlug,omitempty"`
+	Visibility         string `json:"visibility,omitempty"`
+	PublishedBy        string `json:"publishedBy,omitempty"`
+	ForkedFromClaimID  string `json:"forkedFromClaimId,omitempty"`
+	// ForkedFromOwnerName is resolved server-side (getInvestigation) purely
+	// for display — who published the investigation this was built on.
+	ForkedFromOwnerName string                 `json:"forkedFromOwnerName,omitempty"`
+	Contributions       []EvidenceContribution `json:"contributions,omitempty"`
 }
 
 type EvidenceContribution struct {
-	ID            string    `json:"id"`
-	ClaimID       string    `json:"claimId"`
-	ContributorID string    `json:"contributorId"`
-	Type          string    `json:"type"`
-	URL           string    `json:"url"`
-	Note          string    `json:"note"`
-	CreatedAt     time.Time `json:"createdAt"`
+	ID            string `json:"id"`
+	ClaimID       string `json:"claimId"`
+	ContributorID string `json:"contributorId"`
+	// ContributorName is resolved server-side (join on users) — accountability
+	// only means something if the reader can actually see whose name is on it.
+	ContributorName string `json:"contributorName,omitempty"`
+	Type            string `json:"type"`
+	URL             string `json:"url"`
+	Note            string `json:"note"`
+	// Flagged is true once independent reports cross a minimum-sample
+	// threshold — same "don't react to one report" guard as domain trust.
+	// The raw count is deliberately not exposed: it's a signal to read the
+	// contribution skeptically, not a vote tally to game.
+	Flagged   bool      `json:"flagged"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 type CanonicalClaim struct {
@@ -173,6 +184,12 @@ type Proof struct {
 	TEECertificateHash string    `json:"teeCertificateHash"`
 	VerificationStatus string    `json:"verificationStatus"`
 	CapturedAt         time.Time `json:"capturedAt"`
+	// ScreenshotDataURL: the proof page is already fully public and
+	// unauthenticated once someone has the link — a hash-only page is only
+	// useful to someone who already has an independent copy to compare
+	// against, which defeats "share this as evidence". Best-effort: left
+	// blank if the screenshot can't be read, never fails the whole request.
+	ScreenshotDataURL string `json:"screenshotDataUrl,omitempty"`
 }
 
 type AnchorRequest struct {

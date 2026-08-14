@@ -369,7 +369,7 @@ The API applies its Postgres schema automatically on startup and creates the Min
 
 ## Required Credentials
 
-Create `.env` from `.env.example`. Detailed setup is in `docs/ENV_SETUP.md`.
+Create `.env` from `.env.example`.
 
 - `GROQ_API_KEY`: create an API key in the Groq console at `https://console.groq.com/keys`.
 - `GROQ_MODEL`: defaults to `qwen/qwen3.6-27b`, a reasoning-capable multimodal model used for screenshot + text claim extraction.
