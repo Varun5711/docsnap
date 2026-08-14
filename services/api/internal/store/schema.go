@@ -139,4 +139,17 @@ CREATE TABLE IF NOT EXISTS evidence_contributions (
 );
 
 CREATE INDEX IF NOT EXISTS evidence_contributions_claim_id_idx ON evidence_contributions(claim_id);
+
+-- One report per (contribution, reporter) — a unique constraint instead of
+-- app-level dedup, so a resubmitted report is just a no-op, not an error
+-- the caller has to handle.
+CREATE TABLE IF NOT EXISTS contribution_reports (
+  id text PRIMARY KEY,
+  contribution_id text NOT NULL REFERENCES evidence_contributions(id) ON DELETE CASCADE,
+  reporter_id text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (contribution_id, reporter_id)
+);
+
+CREATE INDEX IF NOT EXISTS contribution_reports_contribution_id_idx ON contribution_reports(contribution_id);
 `

@@ -284,6 +284,10 @@ func (m *memoryRepo) AddEvidenceContribution(ctx context.Context, contribution m
 	return nil
 }
 
+func (m *memoryRepo) ReportContribution(ctx context.Context, contributionID, reporterID string) error {
+	return nil
+}
+
 func (m *memoryRepo) Discover(ctx context.Context) ([]model.Claim, []model.Claim, error) {
 	public := make([]model.Claim, 0)
 	for _, item := range m.items {

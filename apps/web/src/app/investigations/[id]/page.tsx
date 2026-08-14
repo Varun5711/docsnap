@@ -2,13 +2,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Flag } from "lucide-react";
 import {
   addEvidence,
   forkClaim,
   getInvestigation,
   investigateClaim,
   publishClaim,
+  reportContribution,
   Investigation,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -58,6 +59,22 @@ export default function InvestigationPage() {
   const [contributionType, setContributionType] = useState("support");
   const [contributionUrl, setContributionUrl] = useState("");
   const [contributionNote, setContributionNote] = useState("");
+  const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
+  async function onReport(contributionId: string) {
+    // Optimistic — flip the button immediately so a double-click can't fire
+    // two requests, and there's no reason to make the reporter wait on a
+    // round-trip for a one-way "noted" action.
+    setReportedIds((prev) => new Set(prev).add(contributionId));
+    try {
+      await reportContribution(contributionId);
+    } catch {
+      setReportedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(contributionId);
+        return next;
+      });
+    }
+  }
   async function load() {
     setLoading(true);
     setError("");
@@ -394,10 +411,16 @@ export default function InvestigationPage() {
 
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0 p-4">
-          <CardTitle className="text-sm font-semibold">
-            Community Evidence
-          </CardTitle>
-          <span className="text-xs text-muted-foreground/60">
+          <div>
+            <CardTitle className="text-sm font-semibold">
+              Community Evidence
+            </CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground/70">
+              Independent of the verdict above — added by users, not
+              verified by DocSnap.
+            </p>
+          </div>
+          <span className="shrink-0 text-xs text-muted-foreground/60">
             {claim.contributions?.length ?? 0} contribution
             {(claim.contributions?.length ?? 0) === 1 ? "" : "s"}
           </span>
@@ -409,30 +432,62 @@ export default function InvestigationPage() {
             </p>
           ) : (
             <div className="space-y-2">
-              {claim.contributions!.map((c) => (
-                <a
-                  key={c.id}
-                  href={c.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block rounded-md border border-white/[0.06] px-3 py-2 text-sm hover:bg-white/[0.03]"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <Badge variant="outline" className="text-[10px]">
-                      {CONTRIBUTION_LABELS[c.type] ?? c.type}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(c.createdAt).toLocaleDateString()}
-                    </span>
+              {claim.contributions!.map((c) => {
+                const reportedByMe = reportedIds.has(c.id);
+                return (
+                  <div
+                    key={c.id}
+                    className={`rounded-md border px-3 py-2 text-sm ${
+                      c.flagged
+                        ? "border-red-500/30 bg-red-500/[0.03]"
+                        : "border-white/[0.06]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="outline" className="text-[10px]">
+                          {CONTRIBUTION_LABELS[c.type] ?? c.type}
+                        </Badge>
+                        {c.flagged && (
+                          <Badge
+                            variant="outline"
+                            className="border-red-500/40 text-[10px] text-red-400"
+                          >
+                            Reported
+                          </Badge>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(c.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    {c.note && (
+                      <p className="mt-1 text-foreground/90">{c.note}</p>
+                    )}
+                    <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                      <a
+                        href={c.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="truncate text-xs text-primary hover:underline"
+                      >
+                        {displayUrl(c.url)}
+                      </a>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span>by {c.contributorName || "a DocSnap user"}</span>
+                        <button
+                          onClick={() => onReport(c.id)}
+                          disabled={reportedByMe}
+                          className="flex items-center gap-1 hover:text-red-400 disabled:cursor-default disabled:hover:text-muted-foreground"
+                        >
+                          <Flag className="h-3 w-3" />
+                          {reportedByMe ? "Reported" : "Report"}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  {c.note && (
-                    <p className="mt-1 text-foreground/90">{c.note}</p>
-                  )}
-                  <p className="mt-1 truncate text-xs text-muted-foreground">
-                    {c.url}
-                  </p>
-                </a>
-              ))}
+                );
+              })}
             </div>
           )}
 

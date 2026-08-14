@@ -239,6 +239,18 @@ func (p *Postgres) AddEvidenceContribution(ctx context.Context, c model.Evidence
 	return err
 }
 
+// ReportContribution is idempotent — the (contribution_id, reporter_id)
+// unique constraint means a repeated report from the same person is a
+// silent no-op rather than an error the caller has to special-case.
+func (p *Postgres) ReportContribution(ctx context.Context, contributionID, reporterID string) error {
+	_, err := p.pool.Exec(ctx, `
+		INSERT INTO contribution_reports (id, contribution_id, reporter_id)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (contribution_id, reporter_id) DO NOTHING
+	`, "rep_"+randomHex(10), contributionID, reporterID)
+	return err
+}
+
 func (p *Postgres) Discover(ctx context.Context) ([]model.Claim, []model.Claim, error) {
 	recent, err := p.publicClaims(ctx, `
 		SELECT c.id, c.evidence_id, c.text, c.type, c.confidence, c.source_excerpt, c.hash, c.status,

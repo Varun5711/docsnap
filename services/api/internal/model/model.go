@@ -117,13 +117,21 @@ type Claim struct {
 }
 
 type EvidenceContribution struct {
-	ID            string    `json:"id"`
-	ClaimID       string    `json:"claimId"`
-	ContributorID string    `json:"contributorId"`
-	Type          string    `json:"type"`
-	URL           string    `json:"url"`
-	Note          string    `json:"note"`
-	CreatedAt     time.Time `json:"createdAt"`
+	ID            string `json:"id"`
+	ClaimID       string `json:"claimId"`
+	ContributorID string `json:"contributorId"`
+	// ContributorName is resolved server-side (join on users) — accountability
+	// only means something if the reader can actually see whose name is on it.
+	ContributorName string `json:"contributorName,omitempty"`
+	Type            string `json:"type"`
+	URL             string `json:"url"`
+	Note            string `json:"note"`
+	// Flagged is true once independent reports cross a minimum-sample
+	// threshold — same "don't react to one report" guard as domain trust.
+	// The raw count is deliberately not exposed: it's a signal to read the
+	// contribution skeptically, not a vote tally to game.
+	Flagged   bool      `json:"flagged"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 type CanonicalClaim struct {

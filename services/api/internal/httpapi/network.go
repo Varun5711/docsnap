@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -246,8 +247,17 @@ func (s Server) addEvidence(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "type must be support, contradict, context, or correction")
 		return
 	}
-	if strings.TrimSpace(req.URL) == "" {
+	req.URL = strings.TrimSpace(req.URL)
+	if req.URL == "" {
 		writeError(w, http.StatusBadRequest, "url is required")
+		return
+	}
+	// Only http(s) — closes off javascript:/data: URLs, which the URL
+	// package parses without error but would happily execute if clicked
+	// as if they were a normal link.
+	parsed, err := url.Parse(req.URL)
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		writeError(w, http.StatusBadRequest, "url must start with http:// or https://")
 		return
 	}
 
@@ -278,6 +288,23 @@ func (s Server) addEvidence(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, updated)
+}
+
+// reportContribution flags a community contribution for review — not a
+// takedown, just a signal readers see (Flagged, once enough independent
+// reports land). Idempotent: reporting the same contribution twice from
+// the same account is a no-op, not an error.
+func (s Server) reportContribution(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.requireUser(w, r)
+	if !ok {
+		return
+	}
+	if err := s.store.ReportContribution(r.Context(), r.PathValue("id"), user.ID); err != nil {
+		log.Printf("reportContribution: save failed: %v", err)
+		writeError(w, http.StatusInternalServerError, "report failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"reported": true})
 }
 
 func (s Server) forkClaim(w http.ResponseWriter, r *http.Request) {

@@ -62,6 +62,7 @@ func (s Server) Routes() http.Handler {
 	mux.HandleFunc("GET /api/claims/similar", s.similarClaims)
 	mux.HandleFunc("GET /api/claim/{slug}", s.getCanonicalClaim)
 	mux.HandleFunc("POST /api/claims/{id}/evidence", s.addEvidence)
+	mux.HandleFunc("POST /api/contributions/{id}/report", s.reportContribution)
 	mux.HandleFunc("POST /api/claims/{id}/fork", s.forkClaim)
 	mux.HandleFunc("POST /api/claims/{id}/publish", s.publishClaim)
 

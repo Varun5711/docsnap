@@ -280,11 +280,18 @@ func (p *Postgres) sourcesForClaim(ctx context.Context, claimID string) ([]model
 }
 
 func (p *Postgres) contributionsForClaim(ctx context.Context, claimID string) ([]model.EvidenceContribution, error) {
+	// Flagged at 3+ independent reports — same "one report shouldn't sink
+	// it" guard as the domain trust min-sample, so a single grudge report
+	// can't flag a legitimate contribution.
 	rows, err := p.pool.Query(ctx, `
-		SELECT id, claim_id, contributor_id, type, url, note, created_at
-		FROM evidence_contributions
-		WHERE claim_id = $1
-		ORDER BY created_at DESC
+		SELECT ec.id, ec.claim_id, ec.contributor_id, COALESCE(u.display_name, ''), ec.type, ec.url, ec.note, ec.created_at,
+			COUNT(cr.id) >= 3
+		FROM evidence_contributions ec
+		LEFT JOIN users u ON u.id = ec.contributor_id
+		LEFT JOIN contribution_reports cr ON cr.contribution_id = ec.id
+		WHERE ec.claim_id = $1
+		GROUP BY ec.id, u.display_name
+		ORDER BY ec.created_at DESC
 	`, claimID)
 	if err != nil {
 		return nil, err
@@ -294,7 +301,7 @@ func (p *Postgres) contributionsForClaim(ctx context.Context, claimID string) ([
 	contributions := make([]model.EvidenceContribution, 0)
 	for rows.Next() {
 		var c model.EvidenceContribution
-		if err := rows.Scan(&c.ID, &c.ClaimID, &c.ContributorID, &c.Type, &c.URL, &c.Note, &c.CreatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.ClaimID, &c.ContributorID, &c.ContributorName, &c.Type, &c.URL, &c.Note, &c.CreatedAt, &c.Flagged); err != nil {
 			return nil, err
 		}
 		contributions = append(contributions, c)

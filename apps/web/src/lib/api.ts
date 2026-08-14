@@ -213,9 +213,11 @@ export type EvidenceContribution = {
   id: string;
   claimId: string;
   contributorId: string;
+  contributorName?: string;
   type: "support" | "contradict" | "context" | "correction";
   url: string;
   note: string;
+  flagged: boolean;
   createdAt: string;
 };
 export async function discover(): Promise<{
@@ -270,6 +272,16 @@ export async function addEvidence(
     throw new Error(body.error || "Adding evidence failed");
   }
   return response.json();
+}
+export async function reportContribution(contributionId: string): Promise<void> {
+  const response = await fetch(
+    `${API_BASE}/api/contributions/${contributionId}/report`,
+    { method: "POST", headers: personHeaders() },
+  );
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error || "Report failed");
+  }
 }
 export async function getDomainTrust(domain: string): Promise<DomainTrust> {
   const response = await fetch(
