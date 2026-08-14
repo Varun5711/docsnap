@@ -2,16 +2,19 @@ const COSTON2_CHAIN_ID = "0x72";
 type Eip1193Provider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
 };
+export class NoWalletError extends Error {
+  constructor() {
+    super("No wallet found — install MetaMask or another injected wallet.");
+    this.name = "NoWalletError";
+  }
+}
 function getProvider(): Eip1193Provider {
   const eth = (
     window as unknown as {
       ethereum?: Eip1193Provider;
     }
   ).ethereum;
-  if (!eth)
-    throw new Error(
-      "No wallet found — install MetaMask or another injected wallet.",
-    );
+  if (!eth) throw new NoWalletError();
   return eth;
 }
 async function ensureCoston2(eth: Eip1193Provider): Promise<void> {

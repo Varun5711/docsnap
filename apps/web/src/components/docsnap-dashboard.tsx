@@ -14,7 +14,7 @@ import {
   verifyEvidence,
   VerifyResult,
 } from "@/lib/api";
-import { connectWallet, sendAnchorTx } from "@/lib/wallet";
+import { connectWallet, NoWalletError, sendAnchorTx } from "@/lib/wallet";
 import { useAuth } from "@/lib/auth";
 import { DomainTrustBadge } from "@/components/domain-trust-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,6 +68,7 @@ export function DocSnapDashboard() {
   const [screenshotSrc, setScreenshotSrc] = useState<string | null>(null);
   const [anchoring, setAnchoring] = useState(false);
   const [anchorError, setAnchorError] = useState("");
+  const [noWalletDetected, setNoWalletDetected] = useState(false);
   const [pendingTxHash, setPendingTxHash] = useState<string | null>(null);
   const params = useMemo(() => {
     const values = new URLSearchParams();
@@ -108,6 +109,7 @@ export function DocSnapDashboard() {
     if (!selected) return;
     setAnchoring(true);
     setAnchorError("");
+    setNoWalletDetected(false);
     setPendingTxHash(null);
     try {
       const address = await connectWallet();
@@ -119,6 +121,9 @@ export function DocSnapDashboard() {
       setPendingTxHash(null);
       await load();
     } catch (err) {
+      if (err instanceof NoWalletError) {
+        setNoWalletDetected(true);
+      }
       setAnchorError(err instanceof Error ? err.message : "Anchoring failed");
     } finally {
       setAnchoring(false);
@@ -446,6 +451,18 @@ export function DocSnapDashboard() {
                               <p className="text-xs text-red-400">
                                 {anchorError}
                               </p>
+                              {noWalletDetected && (
+                                <a
+                                  href="https://metamask.io/download/"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="mt-2 block"
+                                >
+                                  <Button size="sm" className="w-full">
+                                    Install MetaMask
+                                  </Button>
+                                </a>
+                              )}
                               {pendingTxHash && (
                                 <Button
                                   size="sm"
