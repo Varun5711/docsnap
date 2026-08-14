@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Modal } from "@/components/ui/modal";
 import { VerdictBadge } from "@/components/verdict-badge";
 const CONTRIBUTION_LABELS: Record<string, string> = {
   support: "Supporting evidence",
@@ -60,6 +61,7 @@ export default function InvestigationPage() {
   const [contributionUrl, setContributionUrl] = useState("");
   const [contributionNote, setContributionNote] = useState("");
   const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
+  const [showProofModal, setShowProofModal] = useState(false);
   async function onReport(contributionId: string) {
     // Optimistic — flip the button immediately so a double-click can't fire
     // two requests, and there's no reason to make the reporter wait on a
@@ -255,6 +257,13 @@ export default function InvestigationPage() {
                       disabled={forking}
                     >
                       {forking ? "Building…" : "Build on this investigation"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowProofModal(true)}
+                    >
+                      Technical Proof
                     </Button>
                     {(!claim.publishedBy || claim.publishedBy === user?.id) && (
                       <div className="flex items-center gap-2">
@@ -560,58 +569,51 @@ export default function InvestigationPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-12 items-stretch gap-5">
-        <div className="col-span-12 lg:col-span-4">
-          <Card className="flex h-full flex-col">
-            <CardHeader className="p-6 pb-0">
-              <CardTitle className="text-lg font-semibold">Timeline</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 p-6 text-base">
-              {timeline.map((t) => (
-                <div
-                  key={t.label}
-                  className="flex items-center justify-between border-b border-white/[0.04] pb-3 last:border-0"
-                >
-                  <span className="text-foreground/90">{t.label}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {new Date(t.at).toLocaleString()}
-                  </span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
+      <Card>
+        <CardHeader className="p-6 pb-0">
+          <CardTitle className="text-lg font-semibold">Timeline</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 p-6 text-base">
+          {timeline.map((t) => (
+            <div
+              key={t.label}
+              className="flex items-center justify-between border-b border-white/[0.04] pb-3 last:border-0"
+            >
+              <span className="text-foreground/90">{t.label}</span>
+              <span className="text-sm text-muted-foreground">
+                {new Date(t.at).toLocaleString()}
+              </span>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
-        <div className="col-span-12 lg:col-span-8">
-          <Card className="flex h-full flex-col">
-            <details>
-              <summary className="cursor-pointer list-none p-6 text-lg font-semibold text-foreground">
-                Technical Proof
-              </summary>
-              <CardContent className="space-y-3 p-6 pt-0">
-                <HashLine
-                  label="Evidence commitment"
-                  value={evidence.evidenceCommitment}
-                />
-                <HashLine label="Claims root" value={evidence.claimsRoot} />
-                <HashLine label="Flare tx" value={evidence.flareTxHash} />
-                <HashLine
-                  label="TEE certificate"
-                  value={evidence.teeCertificateHash}
-                />
-                <a
-                  href={`/proof/${evidence.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-sm text-primary hover:underline"
-                >
-                  Verify independently <ArrowUpRight className="h-3.5 w-3.5" />
-                </a>
-              </CardContent>
-            </details>
-          </Card>
+      <Modal
+        open={showProofModal}
+        onClose={() => setShowProofModal(false)}
+        title="Technical Proof"
+      >
+        <div className="space-y-3">
+          <HashLine
+            label="Evidence commitment"
+            value={evidence.evidenceCommitment}
+          />
+          <HashLine label="Claims root" value={evidence.claimsRoot} />
+          <HashLine label="Flare tx" value={evidence.flareTxHash} />
+          <HashLine
+            label="TEE certificate"
+            value={evidence.teeCertificateHash}
+          />
+          <a
+            href={`/proof/${evidence.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-sm text-primary hover:underline"
+          >
+            Verify independently <ArrowUpRight className="h-3.5 w-3.5" />
+          </a>
         </div>
-      </div>
+      </Modal>
     </main>
   );
 }
