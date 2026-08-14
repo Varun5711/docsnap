@@ -46,6 +46,7 @@ export type Claim = {
   visibility?: "private" | "unlisted" | "public";
   publishedBy?: string;
   forkedFromClaimId?: string;
+  forkedFromOwnerName?: string;
   contributions?: EvidenceContribution[];
 };
 export type Evidence = {

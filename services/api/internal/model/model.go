@@ -105,12 +105,15 @@ type Claim struct {
 	InvestigatedAt          *time.Time      `json:"investigatedAt,omitempty"`
 	Sources                 []Source        `json:"sources,omitempty"`
 
-	CanonicalClaimID   string                 `json:"canonicalClaimId,omitempty"`
-	CanonicalClaimSlug string                 `json:"canonicalClaimSlug,omitempty"`
-	Visibility         string                 `json:"visibility,omitempty"`
-	PublishedBy        string                 `json:"publishedBy,omitempty"`
-	ForkedFromClaimID  string                 `json:"forkedFromClaimId,omitempty"`
-	Contributions      []EvidenceContribution `json:"contributions,omitempty"`
+	CanonicalClaimID   string `json:"canonicalClaimId,omitempty"`
+	CanonicalClaimSlug string `json:"canonicalClaimSlug,omitempty"`
+	Visibility         string `json:"visibility,omitempty"`
+	PublishedBy        string `json:"publishedBy,omitempty"`
+	ForkedFromClaimID  string `json:"forkedFromClaimId,omitempty"`
+	// ForkedFromOwnerName is resolved server-side (getInvestigation) purely
+	// for display — who published the investigation this was built on.
+	ForkedFromOwnerName string                 `json:"forkedFromOwnerName,omitempty"`
+	Contributions       []EvidenceContribution `json:"contributions,omitempty"`
 }
 
 type EvidenceContribution struct {

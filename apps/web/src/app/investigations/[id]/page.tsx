@@ -53,6 +53,7 @@ export default function InvestigationPage() {
   const [error, setError] = useState("");
   const [forking, setForking] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [showVisibilityOptions, setShowVisibilityOptions] = useState(false);
   const [contributing, setContributing] = useState(false);
   const [contributionType, setContributionType] = useState("support");
   const [contributionUrl, setContributionUrl] = useState("");
@@ -188,6 +189,9 @@ export default function InvestigationPage() {
         </h1>
         {claim.forkedFromClaimId && (
           <p className="mt-2 text-xs text-muted-foreground">
+            <span className="rounded-full border border-white/[0.1] px-2 py-0.5 text-[10px] uppercase tracking-wide">
+              Fork
+            </span>{" "}
             Built on{" "}
             <Link
               href={`/investigations/${claim.forkedFromClaimId}`}
@@ -195,6 +199,9 @@ export default function InvestigationPage() {
             >
               an earlier investigation
             </Link>
+            {claim.forkedFromOwnerName && (
+              <> published by {claim.forkedFromOwnerName}</>
+            )}
           </p>
         )}
         {claim.canonicalClaimSlug && (
@@ -229,24 +236,52 @@ export default function InvestigationPage() {
                   {forking ? "Building…" : "Build on this investigation"}
                 </Button>
                 {(!claim.publishedBy || claim.publishedBy === user?.id) && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-muted-foreground">
-                      Visibility:
-                    </span>
-                    {(["private", "unlisted", "public"] as const).map((v) => (
-                      <button
-                        key={v}
-                        onClick={() => onPublish(v)}
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant="outline"
+                      className="capitalize text-muted-foreground"
+                    >
+                      {claim.visibility || "private"}
+                    </Badge>
+                    {claim.visibility !== "public" && !showVisibilityOptions && (
+                      <Button
+                        size="sm"
+                        onClick={() => onPublish("public")}
                         disabled={publishing}
-                        className={`rounded-full border px-2.5 py-1 text-xs capitalize transition-colors ${
-                          (claim.visibility || "private") === v
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : "border-white/[0.1] text-muted-foreground hover:text-foreground"
-                        }`}
                       >
-                        {v}
+                        {publishing ? "Publishing…" : "Publish publicly"}
+                      </Button>
+                    )}
+                    {!showVisibilityOptions ? (
+                      <button
+                        onClick={() => setShowVisibilityOptions(true)}
+                        className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                      >
+                        Change visibility
                       </button>
-                    ))}
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        {(["private", "unlisted", "public"] as const).map(
+                          (v) => (
+                            <button
+                              key={v}
+                              onClick={() => {
+                                onPublish(v);
+                                setShowVisibilityOptions(false);
+                              }}
+                              disabled={publishing}
+                              className={`rounded-full border px-2.5 py-1 text-xs capitalize transition-colors ${
+                                (claim.visibility || "private") === v
+                                  ? "border-primary bg-primary text-primary-foreground"
+                                  : "border-white/[0.1] text-muted-foreground hover:text-foreground"
+                              }`}
+                            >
+                              {v}
+                            </button>
+                          ),
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

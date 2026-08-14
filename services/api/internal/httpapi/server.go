@@ -467,6 +467,17 @@ func (s Server) getInvestigation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ev.ScreenshotDataURL = ""
+	// Best-effort attribution — a fork should say whose investigation it
+	// built on, not just "an earlier investigation". Never fails the
+	// request over a display nicety: if the parent or its owner can't be
+	// resolved, ForkedFromOwnerName just stays blank.
+	if claim.ForkedFromClaimID != "" {
+		if parent, err := s.store.GetClaim(r.Context(), claim.ForkedFromClaimID); err == nil && parent.PublishedBy != "" {
+			if owner, err := s.store.GetUserByID(r.Context(), parent.PublishedBy); err == nil {
+				claim.ForkedFromOwnerName = owner.DisplayName
+			}
+		}
+	}
 	writeJSON(w, http.StatusOK, model.Investigation{Claim: claim, Evidence: ev})
 }
 

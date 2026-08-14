@@ -121,7 +121,9 @@ func (p *Postgres) Search(ctx context.Context, params SearchParams) (model.Searc
 			AND ($2 = '' OR e.company ILIKE '%' || $2 || '%')
 			AND ($3 = '' OR e.domain ILIKE '%' || $3 || '%')
 			AND ($4 = '' OR e.verification_status = $4)
-			AND ($5 = '' OR e.published_by = $5)
+			AND ($5 = '' OR e.published_by = $5 OR EXISTS (
+				SELECT 1 FROM claims c2 WHERE c2.evidence_id = e.id AND c2.published_by = $5
+			))
 		GROUP BY e.id
 		ORDER BY rank DESC, e.created_at DESC
 		LIMIT $6
@@ -161,7 +163,21 @@ func (p *Postgres) Search(ctx context.Context, params SearchParams) (model.Searc
 
 	claims := make([]model.Claim, 0)
 	for i := range items {
-		items[i].Claims = claimsByEvidence[items[i].ID]
+		evidenceClaims := claimsByEvidence[items[i].ID]
+		// A fork keeps the parent's evidence_id, so evidence you don't own
+		// can still be in your results (because one of its claims is
+		// yours). Don't leak the rest of that evidence's claims — someone
+		// else's private captures — into your view of it.
+		if owner != "" && items[i].PublishedBy != owner {
+			filtered := make([]model.Claim, 0, len(evidenceClaims))
+			for _, c := range evidenceClaims {
+				if c.PublishedBy == owner {
+					filtered = append(filtered, c)
+				}
+			}
+			evidenceClaims = filtered
+		}
+		items[i].Claims = evidenceClaims
 		for _, claim := range items[i].Claims {
 			if query == "" || containsFold(claim.Text, query) || containsFold(claim.SourceExcerpt, query) || containsFold(claim.Type, query) {
 				claims = append(claims, claim)
@@ -368,7 +384,7 @@ func (p *Postgres) claimsForEvidence(ctx context.Context, evidenceIDs []string) 
 	}
 
 	rows, err := p.pool.Query(ctx, `
-		SELECT id, evidence_id, text, type, confidence, source_excerpt, hash, status
+		SELECT id, evidence_id, text, type, confidence, source_excerpt, hash, status, published_by
 		FROM claims
 		WHERE evidence_id = ANY($1)
 		ORDER BY confidence DESC, id ASC
@@ -380,7 +396,7 @@ func (p *Postgres) claimsForEvidence(ctx context.Context, evidenceIDs []string) 
 
 	for rows.Next() {
 		var claim model.Claim
-		if err := rows.Scan(&claim.ID, &claim.EvidenceID, &claim.Text, &claim.Type, &claim.Confidence, &claim.SourceExcerpt, &claim.Hash, &claim.Status); err != nil {
+		if err := rows.Scan(&claim.ID, &claim.EvidenceID, &claim.Text, &claim.Type, &claim.Confidence, &claim.SourceExcerpt, &claim.Hash, &claim.Status, &claim.PublishedBy); err != nil {
 			return nil, err
 		}
 		result[claim.EvidenceID] = append(result[claim.EvidenceID], claim)
