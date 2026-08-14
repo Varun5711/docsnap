@@ -117,14 +117,9 @@ export type Proof = {
 import { getToken } from "@/lib/auth";
 const API_BASE =
   process.env.NEXT_PUBLIC_DOCSNAP_API_URL ?? "http://localhost:8080";
-const API_KEY = process.env.NEXT_PUBLIC_DOCSNAP_API_KEY ?? "";
-function authHeaders(): Record<string, string> {
-  return API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {};
-}
 function personHeaders(): Record<string, string> {
   const token = getToken();
-  if (token) return { Authorization: `Bearer ${token}` };
-  return authHeaders();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 export async function fetchScreenshotObjectUrl(
   evidenceId: string,
@@ -132,7 +127,7 @@ export async function fetchScreenshotObjectUrl(
   const response = await fetch(
     `${API_BASE}/api/evidence/${evidenceId}/screenshot`,
     {
-      headers: authHeaders(),
+      headers: personHeaders(),
     },
   );
   if (!response.ok) {
@@ -146,7 +141,7 @@ export async function searchClaims(
 ): Promise<SearchResult> {
   const response = await fetch(`${API_BASE}/api/claims?${params.toString()}`, {
     cache: "no-store",
-    headers: authHeaders(),
+    headers: personHeaders(),
   });
   if (!response.ok) {
     throw new Error("Search failed");
@@ -158,7 +153,7 @@ export async function verifyEvidence(
 ): Promise<VerifyResult> {
   const response = await fetch(`${API_BASE}/api/verify`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
+    headers: { "Content-Type": "application/json", ...personHeaders() },
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
@@ -183,7 +178,7 @@ export async function investigateClaim(claimId: string): Promise<Claim> {
     `${API_BASE}/api/claims/${claimId}/investigate`,
     {
       method: "POST",
-      headers: authHeaders(),
+      headers: personHeaders(),
     },
   );
   if (!response.ok) {

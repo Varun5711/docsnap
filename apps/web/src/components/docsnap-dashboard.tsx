@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Search } from "lucide-react";
@@ -51,7 +52,11 @@ function StatTile({ label, value }: { label: string; value: number }) {
   );
 }
 export function DocSnapDashboard() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  useEffect(() => {
+    if (!authLoading && !user) router.push("/login");
+  }, [authLoading, user, router]);
   const [query, setQuery] = useState("");
   const [company, setCompany] = useState("");
   const [domain, setDomain] = useState("");
@@ -177,6 +182,14 @@ export function DocSnapDashboard() {
   const tamperedCount = results.items.filter(
     (item) => item.verificationStatus === "tampered",
   ).length;
+  if (authLoading || !user) {
+    return (
+      <main className="mx-auto max-w-7xl space-y-5 px-6 py-10">
+        <Skeleton className="h-8 w-1/3" />
+        <Skeleton className="h-32 w-full" />
+      </main>
+    );
+  }
   return (
     <main className="min-h-screen">
       <div className="border-b border-white/[0.06]">
