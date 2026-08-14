@@ -1,6 +1,7 @@
 package flare
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -21,6 +22,10 @@ import (
 
 type Client interface {
 	Anchor(req model.AnchorRequest) (model.AnchorResult, error)
+
+	BuildSubmitCalldata(req model.AnchorRequest) (model.SubmitCalldata, error)
+
+	VerifySubmission(ctx context.Context, txHash string, req model.AnchorRequest) (model.AnchorResult, string, error)
 }
 
 type Config struct {
@@ -68,6 +73,15 @@ func digest(value string) string {
 	return hex.EncodeToString(sum[:])
 }
 
+func (SimulatedClient) BuildSubmitCalldata(req model.AnchorRequest) (model.SubmitCalldata, error) {
+	return model.SubmitCalldata{To: "0x0000000000000000000000000000000000000000", Data: "0x", ChainID: 114}, nil
+}
+
+func (c SimulatedClient) VerifySubmission(ctx context.Context, txHash string, req model.AnchorRequest) (model.AnchorResult, string, error) {
+	result, err := c.Anchor(req)
+	return result, "0x0000000000000000000000000000000000000000", err
+}
+
 type Coston2Client struct {
 	rpc         *ethclient.Client
 	contract    common.Address
@@ -76,13 +90,6 @@ type Coston2Client struct {
 	contractABI abi.ABI
 }
 
-// signer locks around its own nonce-fetch-through-send sequence so concurrent
-// Anchor() calls don't race on that account's nonce, without serializing
-// unrelated accounts (or the RPC calls that don't touch nonces) behind one
-// global lock.
-// ponytail: still a per-account lock, so two Anchor() calls sharing an
-// account queue behind each other. Upgrade to a local nonce tracker if that
-// becomes the throughput ceiling.
 type signer struct {
 	privateKey string
 	address    common.Address
@@ -147,29 +154,7 @@ func (c *Coston2Client) Anchor(req model.AnchorRequest) (model.AnchorResult, err
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 
-	evidenceID := crypto.Keccak256Hash([]byte(req.EvidenceID))
-	evidenceCommitment, err := hashToBytes32(req.EvidenceCommitment)
-	if err != nil {
-		return model.AnchorResult{}, err
-	}
-	screenshotHash, err := hashToBytes32(req.ScreenshotHash)
-	if err != nil {
-		return model.AnchorResult{}, err
-	}
-	scrapedTextHash, err := hashToBytes32(req.ScrapedTextHash)
-	if err != nil {
-		return model.AnchorResult{}, err
-	}
-	metadataCommitment, err := hashToBytes32(req.MetadataCommitment)
-	if err != nil {
-		return model.AnchorResult{}, err
-	}
-	claimsRoot, err := hashToBytes32(req.ClaimsRoot)
-	if err != nil {
-		return model.AnchorResult{}, err
-	}
-
-	submitData, err := c.contractABI.Pack("submitEvidence", evidenceID, evidenceCommitment, screenshotHash, scrapedTextHash, metadataCommitment, claimsRoot)
+	submitData, err := c.buildSubmitData(req)
 	if err != nil {
 		return model.AnchorResult{}, err
 	}
@@ -179,6 +164,97 @@ func (c *Coston2Client) Anchor(req model.AnchorRequest) (model.AnchorResult, err
 		return model.AnchorResult{}, err
 	}
 
+	return c.certify(ctx, req, submitTx.Hash().Hex())
+}
+
+func (c *Coston2Client) BuildSubmitCalldata(req model.AnchorRequest) (model.SubmitCalldata, error) {
+	data, err := c.buildSubmitData(req)
+	if err != nil {
+		return model.SubmitCalldata{}, err
+	}
+	return model.SubmitCalldata{To: c.contract.Hex(), Data: "0x" + hex.EncodeToString(data), ChainID: 114}, nil
+}
+
+func (c *Coston2Client) VerifySubmission(ctx context.Context, txHash string, req model.AnchorRequest) (model.AnchorResult, string, error) {
+	hash := common.HexToHash(txHash)
+
+	tx, submitter, err := c.waitMined(ctx, hash)
+	if err != nil {
+		return model.AnchorResult{}, "", err
+	}
+	if tx.To() == nil || *tx.To() != c.contract {
+		return model.AnchorResult{}, "", errors.New("transaction was not sent to the DocSnap contract")
+	}
+	wantData, err := c.buildSubmitData(req)
+	if err != nil {
+		return model.AnchorResult{}, "", err
+	}
+	if !bytes.Equal(tx.Data(), wantData) {
+		return model.AnchorResult{}, "", errors.New("transaction calldata doesn't match this evidence")
+	}
+
+	result, err := c.certify(ctx, req, hash.Hex())
+	return result, submitter.Hex(), err
+}
+
+func (c *Coston2Client) waitMined(ctx context.Context, hash common.Hash) (*types.Transaction, common.Address, error) {
+	deadline := time.Now().Add(30 * time.Second)
+	for {
+		receipt, err := c.rpc.TransactionReceipt(ctx, hash)
+		if err == nil {
+			if receipt.Status != types.ReceiptStatusSuccessful {
+				return nil, common.Address{}, errors.New("transaction failed on-chain")
+			}
+			tx, _, err := c.rpc.TransactionByHash(ctx, hash)
+			if err != nil {
+				return nil, common.Address{}, err
+			}
+			signer := types.LatestSignerForChainID(big.NewInt(114))
+			from, err := types.Sender(signer, tx)
+			if err != nil {
+				return nil, common.Address{}, err
+			}
+			return tx, from, nil
+		}
+		if time.Now().After(deadline) {
+			return nil, common.Address{}, errors.New("transaction not confirmed within 30s — try again in a moment")
+		}
+		select {
+		case <-ctx.Done():
+			return nil, common.Address{}, ctx.Err()
+		case <-time.After(2 * time.Second):
+		}
+	}
+}
+
+func (c *Coston2Client) buildSubmitData(req model.AnchorRequest) ([]byte, error) {
+	evidenceID := crypto.Keccak256Hash([]byte(req.EvidenceID))
+	evidenceCommitment, err := hashToBytes32(req.EvidenceCommitment)
+	if err != nil {
+		return nil, err
+	}
+	screenshotHash, err := hashToBytes32(req.ScreenshotHash)
+	if err != nil {
+		return nil, err
+	}
+	scrapedTextHash, err := hashToBytes32(req.ScrapedTextHash)
+	if err != nil {
+		return nil, err
+	}
+	metadataCommitment, err := hashToBytes32(req.MetadataCommitment)
+	if err != nil {
+		return nil, err
+	}
+	claimsRoot, err := hashToBytes32(req.ClaimsRoot)
+	if err != nil {
+		return nil, err
+	}
+	return c.contractABI.Pack("submitEvidence", evidenceID, evidenceCommitment, screenshotHash, scrapedTextHash, metadataCommitment, claimsRoot)
+}
+
+func (c *Coston2Client) certify(ctx context.Context, req model.AnchorRequest, submitTxHash string) (model.AnchorResult, error) {
+	evidenceID := crypto.Keccak256Hash([]byte(req.EvidenceID))
+
 	certificateHash := req.TEECertificateHash
 	if certificateHash == "" {
 		certificateHash = digest(req.EvidenceID + "|" + req.EvidenceCommitment + "|" + req.ClaimsRoot + "|coston2")
@@ -187,7 +263,7 @@ func (c *Coston2Client) Anchor(req model.AnchorRequest) (model.AnchorResult, err
 		certificateHash = "0x" + certificateHash
 	}
 	status := "pending"
-	txHash := submitTx.Hash().Hex()
+	txHash := submitTxHash
 
 	if c.reporter != nil {
 		certBytes, err := hashToBytes32(certificateHash)

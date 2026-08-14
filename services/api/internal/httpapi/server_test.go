@@ -9,21 +9,42 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"strings"
+	"time"
+
 	"github.com/docsnap/docsnap/services/api/internal/ai"
 	"github.com/docsnap/docsnap/services/api/internal/config"
 	"github.com/docsnap/docsnap/services/api/internal/evidence"
 	"github.com/docsnap/docsnap/services/api/internal/flare"
 	"github.com/docsnap/docsnap/services/api/internal/model"
+	"github.com/docsnap/docsnap/services/api/internal/search"
 	"github.com/docsnap/docsnap/services/api/internal/store"
 	"github.com/docsnap/docsnap/services/api/internal/tee"
+	"github.com/docsnap/docsnap/services/api/internal/verdict"
 )
 
 type memoryRepo struct {
-	items map[string]model.Evidence
+	items           map[string]model.Evidence
+	users           map[string]model.User
+	usersByEmail    map[string]string
+	passwords       map[string]string
+	sessions        map[string]string
+	canonical       map[string]model.CanonicalClaim
+	canonicalBySlug map[string]string
+	contributions   map[string][]model.EvidenceContribution
 }
 
 func newMemoryRepo() *memoryRepo {
-	return &memoryRepo{items: map[string]model.Evidence{}}
+	return &memoryRepo{
+		items:           map[string]model.Evidence{},
+		users:           map[string]model.User{},
+		usersByEmail:    map[string]string{},
+		passwords:       map[string]string{},
+		sessions:        map[string]string{},
+		canonical:       map[string]model.CanonicalClaim{},
+		canonicalBySlug: map[string]string{},
+		contributions:   map[string][]model.EvidenceContribution{},
+	}
 }
 
 func (m *memoryRepo) Save(ctx context.Context, item model.Evidence) error {
@@ -42,6 +63,9 @@ func (m *memoryRepo) GetEvidence(ctx context.Context, id string) (model.Evidence
 func (m *memoryRepo) Search(ctx context.Context, params store.SearchParams) (model.SearchResult, error) {
 	items := make([]model.Evidence, 0, len(m.items))
 	for _, item := range m.items {
+		if params.Owner != "" && item.PublishedBy != params.Owner {
+			continue
+		}
 		items = append(items, item)
 	}
 	return model.SearchResult{Items: items}, nil
@@ -55,6 +79,221 @@ func (m *memoryRepo) UpdateVerificationStatus(ctx context.Context, id string, st
 	item.VerificationStatus = status
 	m.items[id] = item
 	return nil
+}
+
+func (m *memoryRepo) DomainTrust(ctx context.Context, domain string) (model.DomainTrust, error) {
+	var total, contradicted, supported int
+	for _, item := range m.items {
+		if item.Domain != domain {
+			continue
+		}
+		for _, claim := range item.Claims {
+			if claim.InvestigationStatus == "" {
+				continue
+			}
+			total++
+			switch claim.InvestigationStatus {
+			case "CONTRADICTED", "LIKELY_CONTRADICTED":
+				contradicted++
+			case "SUPPORTED", "LIKELY_SUPPORTED":
+				supported++
+			}
+		}
+	}
+	return model.NewDomainTrust(domain, total, contradicted, supported), nil
+}
+
+func (m *memoryRepo) UpdateAnchor(ctx context.Context, id string, result model.AnchorResult, submitter string) error {
+	item, ok := m.items[id]
+	if !ok {
+		return store.ErrNotFound
+	}
+	item.FlareTxHash = result.TxHash
+	item.TEECertificateHash = result.TEECertificateHash
+	item.VerificationStatus = result.Status
+	item.AnchorSubmitter = submitter
+	m.items[id] = item
+	return nil
+}
+
+func (m *memoryRepo) GetClaim(ctx context.Context, id string) (model.Claim, error) {
+	for _, item := range m.items {
+		for _, claim := range item.Claims {
+			if claim.ID == id {
+				claim.Contributions = m.contributions[id]
+				return claim, nil
+			}
+		}
+	}
+	return model.Claim{}, store.ErrNotFound
+}
+
+func (m *memoryRepo) SaveInvestigation(ctx context.Context, claimID string, v store.Investigation) error {
+	for evidenceID, item := range m.items {
+		for i, claim := range item.Claims {
+			if claim.ID != claimID {
+				continue
+			}
+			claim.InvestigationStatus = v.Status
+			claim.InvestigationConfidence = v.Confidence
+			claim.Reasoning = &v.Reasoning
+			claim.Sources = v.Sources
+			item.Claims[i] = claim
+			m.items[evidenceID] = item
+			return nil
+		}
+	}
+	return store.ErrNotFound
+}
+
+func (m *memoryRepo) findClaim(id string) (string, model.Claim, bool) {
+	for evidenceID, item := range m.items {
+		for _, claim := range item.Claims {
+			if claim.ID == id {
+				return evidenceID, claim, true
+			}
+		}
+	}
+	return "", model.Claim{}, false
+}
+
+func (m *memoryRepo) putClaim(evidenceID string, claim model.Claim) {
+	item := m.items[evidenceID]
+	for i, c := range item.Claims {
+		if c.ID == claim.ID {
+			item.Claims[i] = claim
+			m.items[evidenceID] = item
+			return
+		}
+	}
+	item.Claims = append(item.Claims, claim)
+	m.items[evidenceID] = item
+}
+
+func (m *memoryRepo) CreateUser(ctx context.Context, user model.User, passwordHash string) error {
+	if _, exists := m.usersByEmail[user.Email]; exists {
+		return errors.New("email taken")
+	}
+	m.users[user.ID] = user
+	m.usersByEmail[user.Email] = user.ID
+	m.passwords[user.ID] = passwordHash
+	return nil
+}
+
+func (m *memoryRepo) GetUserByEmail(ctx context.Context, email string) (model.User, string, error) {
+	id, ok := m.usersByEmail[email]
+	if !ok {
+		return model.User{}, "", store.ErrNotFound
+	}
+	return m.users[id], m.passwords[id], nil
+}
+
+func (m *memoryRepo) GetUserByID(ctx context.Context, id string) (model.User, error) {
+	user, ok := m.users[id]
+	if !ok {
+		return model.User{}, store.ErrNotFound
+	}
+	return user, nil
+}
+
+func (m *memoryRepo) CreateSession(ctx context.Context, token, userID string, expiresAt time.Time) error {
+	m.sessions[token] = userID
+	return nil
+}
+
+func (m *memoryRepo) GetSessionUser(ctx context.Context, token string) (model.User, error) {
+	userID, ok := m.sessions[token]
+	if !ok {
+		return model.User{}, store.ErrNotFound
+	}
+	return m.GetUserByID(ctx, userID)
+}
+
+func (m *memoryRepo) DeleteSession(ctx context.Context, token string) error {
+	delete(m.sessions, token)
+	return nil
+}
+
+func (m *memoryRepo) FindSimilarCanonicalClaims(ctx context.Context, text string, limit int) ([]model.CanonicalClaim, error) {
+	results := make([]model.CanonicalClaim, 0)
+	for _, cc := range m.canonical {
+		if strings.Contains(strings.ToLower(cc.Text), strings.ToLower(text)) || strings.Contains(strings.ToLower(text), strings.ToLower(cc.Text)) {
+			cc.Claims = m.claimsForCanonical(cc.ID)
+			results = append(results, cc)
+		}
+	}
+	return results, nil
+}
+
+func (m *memoryRepo) claimsForCanonical(canonicalID string) []model.Claim {
+	claims := make([]model.Claim, 0)
+	for _, item := range m.items {
+		for _, c := range item.Claims {
+			if c.CanonicalClaimID == canonicalID {
+				claims = append(claims, c)
+			}
+		}
+	}
+	return claims
+}
+
+func (m *memoryRepo) CreateCanonicalClaim(ctx context.Context, cc model.CanonicalClaim) error {
+	m.canonical[cc.ID] = cc
+	m.canonicalBySlug[cc.Slug] = cc.ID
+	return nil
+}
+
+func (m *memoryRepo) GetCanonicalClaimBySlug(ctx context.Context, slug string) (model.CanonicalClaim, error) {
+	id, ok := m.canonicalBySlug[slug]
+	if !ok {
+		return model.CanonicalClaim{}, store.ErrNotFound
+	}
+	cc := m.canonical[id]
+	cc.Claims = m.claimsForCanonical(id)
+	return cc, nil
+}
+
+func (m *memoryRepo) PublishClaim(ctx context.Context, claimID, canonicalClaimID, visibility, publishedBy string) error {
+	evidenceID, claim, ok := m.findClaim(claimID)
+	if !ok {
+		return store.ErrNotFound
+	}
+	claim.CanonicalClaimID = canonicalClaimID
+	claim.Visibility = visibility
+	claim.PublishedBy = publishedBy
+	m.putClaim(evidenceID, claim)
+	return nil
+}
+
+func (m *memoryRepo) ForkClaim(ctx context.Context, parentID, newClaimID, ownerID string) (model.Claim, error) {
+	evidenceID, parent, ok := m.findClaim(parentID)
+	if !ok {
+		return model.Claim{}, store.ErrNotFound
+	}
+	forked := parent
+	forked.ID = newClaimID
+	forked.Visibility = "private"
+	forked.PublishedBy = ownerID
+	forked.ForkedFromClaimID = parentID
+	m.putClaim(evidenceID, forked)
+	return forked, nil
+}
+
+func (m *memoryRepo) AddEvidenceContribution(ctx context.Context, contribution model.EvidenceContribution) error {
+	m.contributions[contribution.ClaimID] = append(m.contributions[contribution.ClaimID], contribution)
+	return nil
+}
+
+func (m *memoryRepo) Discover(ctx context.Context) ([]model.Claim, []model.Claim, error) {
+	public := make([]model.Claim, 0)
+	for _, item := range m.items {
+		for _, c := range item.Claims {
+			if c.Visibility == "public" {
+				public = append(public, c)
+			}
+		}
+	}
+	return public, public, nil
 }
 
 type memoryStore struct {
@@ -92,6 +331,8 @@ func newTestServerWithKey(apiKey string) Server {
 		flare.NewSimulatedClient(),
 		newMemoryStore(),
 		tee.NewLocalCertifier(),
+		search.NewTavilyProvider(""),
+		verdict.NewGenerator("", "", ""),
 	)
 }
 
