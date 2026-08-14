@@ -118,4 +118,3 @@ func fallbackClaim(req model.CaptureRequest) string {
 	}
 	return title + " was present at the captured source URL"
 }
-

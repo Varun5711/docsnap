@@ -13,9 +13,11 @@ import (
 	"github.com/docsnap/docsnap/services/api/internal/evidence"
 	"github.com/docsnap/docsnap/services/api/internal/flare"
 	"github.com/docsnap/docsnap/services/api/internal/httpapi"
+	"github.com/docsnap/docsnap/services/api/internal/search"
 	"github.com/docsnap/docsnap/services/api/internal/storage"
 	"github.com/docsnap/docsnap/services/api/internal/store"
 	"github.com/docsnap/docsnap/services/api/internal/tee"
+	"github.com/docsnap/docsnap/services/api/internal/verdict"
 )
 
 func main() {
@@ -51,7 +53,9 @@ func main() {
 	if cfg.TEEURL != "" {
 		certifier = tee.NewHTTPClient(cfg.TEEURL)
 	}
-	server := httpapi.NewServer(cfg, repo, extractor, hasher, anchor, objectStore, certifier)
+	searchProvider := search.NewTavilyProvider(cfg.TavilyAPIKey)
+	verdictGenerator := verdict.NewGenerator(cfg.GroqAPIKey, cfg.GroqBaseURL, cfg.VerdictModel)
+	server := httpapi.NewServer(cfg, repo, extractor, hasher, anchor, objectStore, certifier, searchProvider, verdictGenerator)
 
 	httpServer := &http.Server{
 		Addr:              cfg.Addr,

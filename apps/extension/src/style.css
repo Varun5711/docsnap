@@ -1,6 +1,3 @@
-/* Same dark token palette as apps/web/src/app/globals.css (ported from
-   cdex-admin-client) — plain CSS here since the popup has no Tailwind/React,
-   but same hex values, same Input/Button look. */
 :root {
   color-scheme: dark;
   color: #fafafa;
@@ -77,6 +74,31 @@ input::placeholder {
   color: #71717a;
 }
 
+textarea {
+  background: #09090b;
+  border: 1px solid #27272a;
+  border-radius: 10px;
+  color: #fafafa;
+  display: block;
+  font: inherit;
+  margin-top: 5px;
+  padding: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+  resize: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+textarea:focus {
+  border-color: #3c83f6;
+  box-shadow: 0 0 0 1px #3c83f6;
+}
+
+textarea::placeholder {
+  color: #71717a;
+}
+
 button {
   background: #3c83f6;
   border: 0;
@@ -100,15 +122,52 @@ button:disabled {
   opacity: 0.5;
 }
 
+button.secondary {
+  background: #18181b;
+  border: 1px solid #27272a;
+  color: #fafafa;
+  margin-top: 8px;
+}
+
+button.secondary:hover:not(:disabled) {
+  background: #1f1f23;
+}
+
 p {
   color: #a1a1aa;
   font-size: 12px;
   margin: 12px 0 0;
 }
 
-/* Connection settings — collapsed by default so API URL/API Key (dev config)
-   don't sit in the same visual tier as Company/Case ID/User ID (the actual
-   capture fields an auditor fills in). */
+.recent {
+  margin-top: 14px;
+}
+
+.recent-heading {
+  color: #71717a;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.recent-item {
+  display: block;
+  color: #a1a1aa;
+  font-size: 12px;
+  padding: 6px 0;
+  border-top: 1px solid #18181b;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-item:hover {
+  color: #fafafa;
+}
+
 details.settings {
   margin-top: 16px;
   border-top: 1px solid #27272a;
