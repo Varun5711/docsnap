@@ -165,7 +165,22 @@ func (p *Postgres) claimsForCanonical(ctx context.Context, canonicalClaimID stri
 		c.CanonicalClaimID = canonicalClaimID
 		claims = append(claims, c)
 	}
-	return claims, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	ids := make([]string, len(claims))
+	for i, c := range claims {
+		ids[i] = c.ID
+	}
+	sourcesByClaim, err := p.sourcesForClaims(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	for i := range claims {
+		claims[i].Sources = sourcesByClaim[claims[i].ID]
+	}
+	return claims, nil
 }
 
 func (p *Postgres) PublishClaim(ctx context.Context, claimID, canonicalClaimID, visibility, publishedBy string) error {
@@ -289,6 +304,7 @@ func (p *Postgres) publicClaims(ctx context.Context, query string) ([]model.Clai
 	defer rows.Close()
 
 	claims := make([]model.Claim, 0)
+	ids := make([]string, 0)
 	for rows.Next() {
 		var c model.Claim
 		var canonicalClaimID *string
@@ -303,8 +319,50 @@ func (p *Postgres) publicClaims(ctx context.Context, query string) ([]model.Clai
 			c.CanonicalClaimID = *canonicalClaimID
 		}
 		claims = append(claims, c)
+		ids = append(ids, c.ID)
 	}
-	return claims, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	sourcesByClaim, err := p.sourcesForClaims(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	for i := range claims {
+		claims[i].Sources = sourcesByClaim[claims[i].ID]
+	}
+	return claims, nil
+}
+
+// sourcesForClaims batches sourcesForClaim across many claims in one query
+// — Discover's "0 sources" everywhere was this exact gap: publicClaims()
+// never fetched sources at all, so every claim showed an empty list
+// regardless of how many sources it actually had.
+func (p *Postgres) sourcesForClaims(ctx context.Context, claimIDs []string) (map[string][]model.Source, error) {
+	result := map[string][]model.Source{}
+	if len(claimIDs) == 0 {
+		return result, nil
+	}
+	rows, err := p.pool.Query(ctx, `
+		SELECT id, claim_id, url, name, source_type, star_rating, relationship, relevance, captured_at
+		FROM sources
+		WHERE claim_id = ANY($1)
+		ORDER BY relevance DESC
+	`, claimIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var s model.Source
+		if err := rows.Scan(&s.ID, &s.ClaimID, &s.URL, &s.Name, &s.SourceType, &s.StarRating, &s.Relationship, &s.Relevance, &s.CapturedAt); err != nil {
+			return nil, err
+		}
+		result[s.ClaimID] = append(result[s.ClaimID], s)
+	}
+	return result, rows.Err()
 }
 
 func marshalOrEmpty(v any, fallback string) (string, error) {
