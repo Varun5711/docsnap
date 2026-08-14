@@ -4,7 +4,7 @@ DocSnap captures web evidence, extracts claims with AI, investigates those claim
 
 ## Quick Links
 
-**Demo video:** [YouTube/Loom link]
+**Demo video:** [https://youtu.be/eitsBxL4dQU](https://youtu.be/eitsBxL4dQU)
 **GitHub repo:** [your repo URL]
 **Coston2 contract (DocSnapAnchor):** `0xdaC770BAEcC31149A1173Bc616eF90E6Acb1aC3c` — [https://coston2-explorer.flare.network/address/0xdaC770BAEcC31149A1173Bc616eF90E6Acb1aC3c](https://coston2-explorer.flare.network/address/0xdaC770BAEcC31149A1173Bc616eF90E6Acb1aC3c)
 
