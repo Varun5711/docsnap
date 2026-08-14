@@ -21,6 +21,8 @@ type Config struct {
 	S3Bucket     string
 	S3UseSSL     bool
 	DatabaseURL  string
+	TavilyAPIKey string
+	VerdictModel string
 }
 
 func Load() Config {
@@ -43,6 +45,9 @@ func Load() Config {
 		S3Bucket:     env("DOCSNAP_S3_BUCKET", "docsnap-evidence"),
 		S3UseSSL:     env("DOCSNAP_S3_USE_SSL", "false") == "true",
 		DatabaseURL:  env("DATABASE_URL", "postgres://docsnap:docsnap@localhost:5432/docsnap?sslmode=disable"),
+		TavilyAPIKey: env("TAVILY_API_KEY", ""),
+
+		VerdictModel: env("GROQ_VERDICT_MODEL", "llama-3.3-70b-versatile"),
 	}
 }
 

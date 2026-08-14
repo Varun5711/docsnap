@@ -10,13 +10,19 @@
     <main>
       <header>
         <span>DocSnap</span>
-        <strong>Capture claim evidence</strong>
+        <strong>What do you want to verify?</strong>
       </header>
       <label>Company<input id="company" value="ExampleCo" /></label>
-      <label>Case id<input id="caseId" value="CASE-2026-001" /></label>
-      <label>User id<input id="userId" value="auditor@docsnap.local" /></label>
-      <button id="capture">Capture with DocSnap</button>
+
+      <label>Claim<textarea id="claimText" rows="2" placeholder="Paste or type the claim to check"></textarea></label>
+      <button id="verifyClaim">Verify a claim</button>
+      <button id="analyzePage" class="secondary">Analyze this page</button>
+      <button id="captureOnly" class="secondary">Capture evidence</button>
+
       <p id="status">Ready</p>
+
+      <section id="recent" class="recent"></section>
+
       <details class="settings">
         <summary>
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

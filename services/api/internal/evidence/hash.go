@@ -84,4 +84,3 @@ func normalizeText(value string) string {
 	fields := strings.Fields(value)
 	return strings.Join(fields, " ")
 }
-
