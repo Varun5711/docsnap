@@ -203,7 +203,7 @@ export default function InvestigationPage() {
         <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground/60">
           DocSnap Investigation
         </div>
-        <h1 className="mt-2 text-xl font-semibold leading-relaxed text-foreground">
+        <h1 className="mt-2 text-2xl font-semibold leading-snug text-foreground">
           "{claim.text}"
         </h1>
         {claim.forkedFromClaimId && (
@@ -239,15 +239,15 @@ export default function InvestigationPage() {
       <div className="grid grid-cols-12 items-stretch gap-5">
         <div className={hasWhy ? "col-span-12 lg:col-span-5" : "col-span-12"}>
           <Card className="flex h-full flex-col">
-            <CardContent className="space-y-4 p-6">
+            <CardContent className="space-y-5 p-6">
               {hasVerdict ? (
                 <>
                   <VerdictBadge status={claim.investigationStatus!} />
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-base text-muted-foreground">
                     Confidence:{" "}
                     {Math.round((claim.investigationConfidence ?? 0) * 100)}%
                   </p>
-                  <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.06] pt-4">
+                  <div className="flex flex-wrap items-center gap-3 border-t border-white/[0.06] pt-5">
                     <Button
                       variant="outline"
                       size="sm"
@@ -343,18 +343,21 @@ export default function InvestigationPage() {
         {hasWhy && (
           <div className="col-span-12 lg:col-span-7">
             <Card className="flex h-full flex-col">
-              <CardHeader className="p-4">
-                <CardTitle className="text-sm font-semibold">Why?</CardTitle>
+              <CardHeader className="p-6 pb-0">
+                <CardTitle className="text-lg font-semibold">Why?</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 p-4 pt-0 text-sm">
+              <CardContent className="space-y-5 p-6 text-base">
                 {claim.reasoning!.knowns.length > 0 && (
                   <div>
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground/60">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground/60">
                       What we know
                     </p>
-                    <ul className="space-y-1">
+                    <ul className="space-y-2">
                       {claim.reasoning!.knowns.map((k, i) => (
-                        <li key={i} className="text-foreground/90">
+                        <li
+                          key={i}
+                          className="leading-relaxed text-foreground/90"
+                        >
                           ✓ {k}
                         </li>
                       ))}
@@ -363,12 +366,15 @@ export default function InvestigationPage() {
                 )}
                 {claim.reasoning!.unknowns.length > 0 && (
                   <div>
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground/60">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground/60">
                       What we couldn't verify
                     </p>
-                    <ul className="space-y-1">
+                    <ul className="space-y-2">
                       {claim.reasoning!.unknowns.map((u, i) => (
-                        <li key={i} className="text-muted-foreground">
+                        <li
+                          key={i}
+                          className="leading-relaxed text-muted-foreground"
+                        >
                           ? {u}
                         </li>
                       ))}
@@ -377,12 +383,12 @@ export default function InvestigationPage() {
                 )}
                 {claim.reasoning!.conflicts.length > 0 && (
                   <div>
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground/60">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground/60">
                       What conflicts
                     </p>
-                    <ul className="space-y-1">
+                    <ul className="space-y-2">
                       {claim.reasoning!.conflicts.map((c, i) => (
-                        <li key={i} className="text-amber-300">
+                        <li key={i} className="leading-relaxed text-amber-300">
                           ⚠ {c}
                         </li>
                       ))}
@@ -399,12 +405,12 @@ export default function InvestigationPage() {
         {hasEvidenceSources && (
           <div className="col-span-12 lg:col-span-6">
             <Card className="flex h-full flex-col">
-              <CardHeader className="p-4">
-                <CardTitle className="text-sm font-semibold">
+              <CardHeader className="p-6 pb-0">
+                <CardTitle className="text-lg font-semibold">
                   Evidence
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 p-4 pt-0">
+              <CardContent className="space-y-5 p-6">
                 <SourceGroup
                   title="Supports"
                   sources={supports}
@@ -431,34 +437,34 @@ export default function InvestigationPage() {
           }
         >
           <Card className="flex h-full flex-col">
-            <CardHeader className="flex-row items-center justify-between space-y-0 p-4">
+            <CardHeader className="flex-row items-center justify-between space-y-0 p-6 pb-0">
               <div>
-                <CardTitle className="text-sm font-semibold">
+                <CardTitle className="text-lg font-semibold">
                   Community Evidence
                 </CardTitle>
-                <p className="mt-1 text-xs text-muted-foreground/70">
+                <p className="mt-1 text-sm text-muted-foreground/70">
                   Independent of the verdict above — added by users, not
                   verified by DocSnap.
                 </p>
               </div>
-              <span className="shrink-0 text-xs text-muted-foreground/60">
+              <span className="shrink-0 text-sm text-muted-foreground/60">
                 {claim.contributions?.length ?? 0} contribution
                 {(claim.contributions?.length ?? 0) === 1 ? "" : "s"}
               </span>
             </CardHeader>
-            <CardContent className="space-y-4 p-4 pt-0">
+            <CardContent className="space-y-5 p-6">
               {(claim.contributions?.length ?? 0) === 0 ? (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-base text-muted-foreground">
                   No community evidence yet — be the first to add some.
                 </p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {claim.contributions!.map((c) => {
                     const reportedByMe = reportedIds.has(c.id);
                     return (
                       <div
                         key={c.id}
-                        className={`rounded-md border px-3 py-2 text-sm ${
+                        className={`rounded-lg border px-4 py-3 text-base ${
                           c.flagged
                             ? "border-red-500/30 bg-red-500/[0.03]"
                             : "border-white/[0.06]"
@@ -466,13 +472,13 @@ export default function InvestigationPage() {
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-1.5">
-                            <Badge variant="outline" className="text-[10px]">
+                            <Badge variant="outline" className="text-xs">
                               {CONTRIBUTION_LABELS[c.type] ?? c.type}
                             </Badge>
                             {c.flagged && (
                               <Badge
                                 variant="outline"
-                                className="border-red-500/40 text-[10px] text-red-400"
+                                className="border-red-500/40 text-xs text-red-400"
                               >
                                 Reported
                               </Badge>
@@ -483,14 +489,14 @@ export default function InvestigationPage() {
                           </span>
                         </div>
                         {c.note && (
-                          <p className="mt-1 text-foreground/90">{c.note}</p>
+                          <p className="mt-2 text-foreground/90">{c.note}</p>
                         )}
-                        <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                        <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                           <a
                             href={c.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="truncate text-xs text-primary hover:underline"
+                            className="truncate text-sm text-primary hover:underline"
                           >
                             {displayUrl(c.url)}
                           </a>
@@ -516,7 +522,7 @@ export default function InvestigationPage() {
 
               <form
                 onSubmit={onContribute}
-                className="space-y-2 border-t border-white/[0.06] pt-4"
+                className="space-y-2 border-t border-white/[0.06] pt-5"
               >
                 <div className="flex gap-2">
                   <select
@@ -557,17 +563,17 @@ export default function InvestigationPage() {
       <div className="grid grid-cols-12 items-stretch gap-5">
         <div className="col-span-12 lg:col-span-4">
           <Card className="flex h-full flex-col">
-            <CardHeader className="p-4">
-              <CardTitle className="text-sm font-semibold">Timeline</CardTitle>
+            <CardHeader className="p-6 pb-0">
+              <CardTitle className="text-lg font-semibold">Timeline</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 p-4 pt-0 text-sm">
+            <CardContent className="space-y-3 p-6 text-base">
               {timeline.map((t) => (
                 <div
                   key={t.label}
-                  className="flex items-center justify-between border-b border-white/[0.04] pb-2 last:border-0"
+                  className="flex items-center justify-between border-b border-white/[0.04] pb-3 last:border-0"
                 >
                   <span className="text-foreground/90">{t.label}</span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-sm text-muted-foreground">
                     {new Date(t.at).toLocaleString()}
                   </span>
                 </div>
@@ -579,10 +585,10 @@ export default function InvestigationPage() {
         <div className="col-span-12 lg:col-span-8">
           <Card className="flex h-full flex-col">
             <details>
-              <summary className="cursor-pointer list-none p-4 text-sm font-semibold text-foreground">
+              <summary className="cursor-pointer list-none p-6 text-lg font-semibold text-foreground">
                 Technical Proof
               </summary>
-              <CardContent className="space-y-3 p-4 pt-0">
+              <CardContent className="space-y-3 p-6 pt-0">
                 <HashLine
                   label="Evidence commitment"
                   value={evidence.evidenceCommitment}
